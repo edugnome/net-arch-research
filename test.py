@@ -6,6 +6,9 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 import multiprocessing
+import os
+
+os.environ['NCCL_SOCKET_IFNAME'] = 'lo'
 
 # Пример простой модели
 class SimpleModel(pl.LightningModule):
