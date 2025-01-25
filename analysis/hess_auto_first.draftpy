@@ -1,0 +1,180 @@
+import torch
+import torch.nn as nn
+from collections import OrderedDict
+
+def compute_layerwise_hessians(model: nn.Module,
+                               x: torch.Tensor,
+                               aggregator=torch.sum):
+    """
+    Вычисляет матрицы Гессе (Hessian) по параметрам для каждого слоя модели PyTorch,
+    используя автодифференцирование (torch.autograd).
+
+    Математическая идея:
+    --------------------
+    Для слоя L с параметрами θ = (θ_1, ..., θ_n) мы рассматриваем функцию
+        f_L(x) = aggregator(L(x)),
+    где L(x) — выход слоя при входе x, а aggregator — способ преобразовать
+    выход в скаляр (например, sum, mean, ...).
+
+    Тогда матрица Гессе H имеет размер (n, n), и её элементы определяются как
+        H_{ij} = ∂² f_L / (∂θ_i ∂θ_j).
+
+    Параметры:
+    ----------
+    model : nn.Module
+        Любая модель PyTorch (например, набор слоёв, nn.Sequential, кастомная модель и т.п.).
+        Главное, чтобы у каждого «слоя» (модуля) были чётко определённые параметры.
+    x : torch.Tensor
+        Входной тензор (один объект или мини-батч). Для корректного вычисления
+        желательно использовать 1 пример или небольшой батч, так как вычисление
+        Гессиана масштабируется не только по параметрам, но и по размеру выхода.
+    aggregator : Callable
+        Функция, которая превращает выход слоя в скаляр. По умолчанию `torch.sum`.
+        Можно заменить, например, на `torch.mean`.
+
+    Возвращает:
+    -----------
+    OrderedDict[layer_module, torch.Tensor]
+        Словарь (упорядоченный по порядку обхода модели) из пар:
+        {
+          слой: Гессиан (размер (P, P)),
+          ...
+        }
+        где P — число параметров (веса + смещения + др.) данного слоя.
+
+    Ограничения:
+    ------------
+    1. Если слой возвращает тензор размерности > 1, мы применяем aggregator, чтобы
+       получить скаляр.
+    2. Если модель имеет сложную структуру (ветвления, skip-connections), метод
+       будет регистрировать выходы всех «подмодулей» с параметрами. Для правильного
+       результата предполагается, что каждый из таких модулей вызывается строго 1 раз
+       в прямом проходе.
+    3. Для больших сетей вычисление может быть крайне медленным и требовательным
+       к памяти, так как матрица Гессе может быть очень большой.
+
+    Пример использования:
+    ---------------------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> # Допустим, простая модель
+    >>> model = nn.Sequential(
+    ...     nn.Linear(2, 3),
+    ...     nn.ReLU(),
+    ...     nn.Linear(3, 1),
+    ...     nn.Sigmoid()
+    ... )
+    >>> x = torch.tensor([[1.0, 2.0]])  # батч из 1 примера
+    >>> hessians = compute_layerwise_hessians(model, x, aggregator=torch.sum)
+    >>> for layer, H in hessians.items():
+    ...     print(f"Слой: {layer}\nГессиан:\n{H}\n")
+    """
+
+    # ================================ Вспомогательные функции ================================
+
+    def flatten_grads(grad_list):
+        """
+        Принимает список градиентов (по каждому параметру слоя),
+        возвращает кортеж:
+            - grads_vector (torch.Tensor): все градиенты, склеенные в 1D,
+            - shapes (list[tuple]): сохранённые исходные размеры каждого градиента,
+              чтобы при необходимости можно было "распаковать".
+        Если среди grad_list есть None, значит параметр не участвовал в расчёте,
+        тогда вместо него подставляем вектор из нулей.
+        """
+        flat = []
+        shapes = []
+        for g, p in zip(grad_list, layer_params):
+            if g is None:
+                # Параметр не затронут в функции (бывает такое, если где-то есть skip)
+                flat.append(torch.zeros_like(p).view(-1))
+                shapes.append(p.shape)
+            else:
+                flat.append(g.contiguous().view(-1))
+                shapes.append(g.shape)
+        return torch.cat(flat), shapes
+
+    def compute_hessian_of_scalar_function(scalar_output, layer_params):
+        """
+        Принимает скаляр scalar_output, зависящий от набора параметров layer_params,
+        и вычисляет Гессиан размерности (P, P), где P = сумма всех параметров слоя.
+        Использует метод построчного взятия градиента: для каждой компоненты
+        первого градиента берётся градиент ещё раз.
+        """
+        # Первый градиент (Jacobian) — вектор размера P
+        grads = torch.autograd.grad(scalar_output,
+                                    layer_params,
+                                    create_graph=True,
+                                    retain_graph=True,
+                                    allow_unused=True)
+        # Склеиваем в один вектор
+        grads_vector, _ = flatten_grads(grads)
+        param_count = grads_vector.numel()
+
+        H = torch.zeros(param_count, param_count, device=grads_vector.device)
+
+        # Построчно вычисляем вторые производные
+        for i in range(param_count):
+            # Берём градиент grads_vector[i] по тем же параметрам
+            # retain_graph=True, чтобы граф не удалялся после каждой итерации
+            g2 = torch.autograd.grad(grads_vector[i],
+                                     layer_params,
+                                     retain_graph=True,
+                                     allow_unused=True)
+            g2_vector, _ = flatten_grads(g2)
+            H[i, :] = g2_vector
+
+        return H
+
+    # ====================== Регистрируем forward-хуки, чтобы поймать выходы слоёв ======================
+    # Мы хотим "поймать" выход каждого подмодуля, который имеет параметры (weights, biases и т.д.)
+    # и сохранить эти выходы в activations.
+
+    activations = OrderedDict()
+
+    def forward_hook(module, inp, out):
+        # Каждый module может быть слоем (Linear, Conv, и т.д.)
+        # Сохраним его выход, чтобы потом вычислить Гессиан именно по параметрам этого слоя
+        activations[module] = out
+
+    # Регистрируем forward-хуки для всех подмодулей, у которых есть хотя бы 1 параметр.
+    handles = []
+    for mod in model.modules():
+        # Проверим, есть ли у этого подмодуля параметры
+        if sum(p.numel() for p in mod.parameters()) > 0:
+            h = mod.register_forward_hook(forward_hook)
+            handles.append(h)
+
+    # Запускаем прямой проход
+    with torch.enable_grad():
+        output = model(x)
+
+    # Теперь в activations собраны выходы всех модулей (слоёв) с параметрами
+    # Удалим хуки, они больше не нужны
+    for h in handles:
+        h.remove()
+
+    # ====================== Для каждого слоя вычисляем Гессиан ======================
+    layerwise_hessians = OrderedDict()
+
+    for module, activation_out in activations.items():
+        # Получаем параметры этого слоя
+        layer_params = list(module.parameters())
+        if not layer_params:
+            # Нет параметров — значит ничего не считаем
+            continue
+
+        # Превратим выход слоя в скаляр (например, sum)
+        if isinstance(activation_out, (tuple, list)):
+            # Если модуль возвращает кортеж, суммируем все элементы
+            # (например, LSTM может возвращать (output, hidden))
+            activation_out = sum(aggregator(o) for o in activation_out)
+        else:
+            # Обычный случай — tensor
+            activation_out = aggregator(activation_out)
+
+        # Вычислим Hessian этого скалярного выхода по параметрам
+        H = compute_hessian_of_scalar_function(activation_out, layer_params)
+        layerwise_hessians[module] = H.detach()
+
+    return layerwise_hessians

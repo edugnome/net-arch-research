@@ -1,0 +1,227 @@
+import torch
+import torch.nn as nn
+
+def compute_hessians_for_broken_perceptron(model: nn.Module, x: torch.Tensor):
+    """
+    Вычисляет матрицы Гессе по параметрам (веса и смещения) для каждого слоя модели BrokenPerceptron,
+    рассматривая каждый слой (Linear + активация) как отдельную скалярную функцию.
+
+    Математическая постановка:
+    --------------------------------
+    Рассмотрим i-й слой (из 6 в данной модели), который можно представить формулой:
+        y_i = σ_i( w_i^T * x_{i-1} + b_i ),
+    где:
+    - x_{i-1} — вход данного слоя (результат предыдущего слоя или исходный вход x, если слой первый),
+    - w_i и b_i — параметры слоя (веса и смещение),
+    - σ_i — функция активации (в нашем случае это либо nn.Sigmoid, либо тождественная функция
+      для самого первого слоя, где нет явной нелинейности в коде).
+
+    Для сигмоиды σ(z):
+        σ(z)       = 1 / (1 + e^(-z)),
+        σ'(z)      = σ(z) * (1 - σ(z)),
+        σ''(z)     = σ'(z) * (1 - 2σ(z)).
+
+    Если рассматривать выход y_i как скалярную функцию от параметров θ_i = (w_i, b_i),
+    то матрица Гессе H_i имеет размерность (количество_параметров_i x количество_параметров_i)
+    и содержит вторые частные производные:
+        H_i[j, k] = ∂^2 y_i / (∂θ_i_j ∂θ_i_k).
+
+    Для слоя с функцией y = σ(w^T x + b), где w — (1, n), x — (n, ), b — (1, ):
+    1. z = w^T x + b — скаляр;
+    2. y = σ(z).
+
+    Обозначим:
+        s      = σ(z),
+        s'     = s * (1 - s),
+        s''    = s' * (1 - 2s).
+
+    Тогда:
+        ∂y / ∂w_j  = s' * x_j,
+        ∂y / ∂b    = s'.
+
+    Вторые производные:
+        ∂^2 y / (∂w_j ∂w_k) = s'' * x_j * x_k,
+        ∂^2 y / (∂w_j ∂b)   = s'' * x_j,
+        ∂^2 y / (∂b   ∂b)   = s''.
+
+    Для линейного слоя без активации (как в первом слое модели):
+        y = w^T x + b,
+    первая производная по любому параметру — константа (зависящая от x), поэтому вторая производная равна 0.
+
+    Параметры:
+    --------------------------------
+    model : nn.Module
+        Экземпляр класса BrokenPerceptron.
+    x : torch.Tensor
+        Входной тензор (один объект, а не батч). Размерность должна совпадать с input_size в BrokenPerceptron.
+
+    Возвращает:
+    --------------------------------
+    list[torch.Tensor]:
+        Список из 6 матриц Гессе (torch.Tensor) размерностей:
+        [
+          H_1,  # Гессиан первого слоя (Linear без явной активации)
+          H_2,  # Гессиан второго слоя (Linear + Sigmoid)
+          H_3,  # Гессиан третьего слоя (Linear + Sigmoid)
+          H_4,  # Гессиан четвёртого слоя (Linear + Sigmoid)
+          H_5,  # Гессиан пятого слоя (Linear + Sigmoid)
+          H_6,  # Гессиан шестого слоя (Linear + Sigmoid)
+        ]
+
+    Пример:
+    --------------------------------
+    >>> # Предположим, у нас вход размерности 2
+    >>> model = BrokenPerceptron(input_size=2)
+    >>> x = torch.tensor([1.0, -1.0])  # Входные данные
+    >>> hessians = compute_hessians_for_broken_perceptron(model, x)
+    >>> for i, H in enumerate(hessians, start=1):
+    ...     print(f"Гессиан слоя {i}:\n{H}\n")
+    """
+
+    # Проверим, что у нас действительно модель BrokenPerceptron
+    if not isinstance(model, nn.Module):
+        raise TypeError("Ожидается PyTorch-модель, наследуемая от nn.Module.")
+    if not hasattr(model, 'layer') or not hasattr(model, 'layer2'):
+        raise AttributeError("У переданной модели отсутствуют необходимые атрибуты (layer, layer2 и т.д.).")
+
+    # Убедимся, что x - одномерный вектор
+    if x.dim() != 1:
+        raise ValueError("Ожидается, что x - одномерный тензор, соответствующий входу модели.")
+
+    # Функции для вычисления Гессе
+    def sigmoid(z):
+        return 1.0 / (1.0 + torch.exp(-z))
+    
+    def sigmoid_prime(s):
+        # s = sigmoid(z)
+        return s * (1 - s)
+    
+    def sigmoid_double_prime(s):
+        # s' = s * (1 - s), s'' = s' * (1 - 2s)
+        s_prim = sigmoid_prime(s)
+        return s_prim * (1 - 2 * s)
+    
+    def compute_hessian_linear_identity(inp, w, b):
+        """
+        Гессиан для линейного слоя (1 выход, n входов) без нелинейной активации:
+            y = w^T * x + b
+        Поскольку это линейная функция по параметрам, все вторые производные равны 0.
+        """
+        with torch.no_grad():
+            param_count = w.numel() + 1  # +1 для bias
+            return torch.zeros((param_count, param_count), dtype=torch.float32)
+    
+    def compute_hessian_linear_sigmoid(inp, w, b):
+        """
+        Гессиан для слоя (Linear + Sigmoid):
+            z = w^T * x + b,  y = sigmoid(z).
+        Возвращает матрицу размером (param_count, param_count).
+        """
+        with torch.no_grad():
+            # Убедимся, что и inp, и w - одномерные
+            if w.dim() > 1:
+                # w имеет форму (1, n), сделаем (n, )
+                w = w.view(-1)
+            z = torch.dot(w, inp) + b
+            s = sigmoid(z)  # скаляр
+            spp = sigmoid_double_prime(s)  # s''(z)
+            
+            param_count = w.numel() + 1  # +1 для bias
+            H = torch.zeros((param_count, param_count), dtype=torch.float32)
+            
+            # Заполняем компоненты
+            # w_i, w_j
+            for i in range(w.numel()):
+                for j in range(w.numel()):
+                    H[i, j] = spp * inp[i] * inp[j]
+            
+            # w_i, b
+            for i in range(w.numel()):
+                H[i, w.numel()] = spp * inp[i]
+                H[w.numel(), i] = spp * inp[i]
+            
+            # b, b
+            H[w.numel(), w.numel()] = spp
+            
+            return H
+
+    # 1) Первый слой (Linear без явной активации в коде), вход x
+    #    out1 = layer(x)
+    w1 = model.layer.weight  # shape (1, input_size)
+    b1 = model.layer.bias    # shape (1,)
+    out1 = w1 @ x + b1  # скалярный выход
+    # Гессиан первого "слоя + активации" (здесь активация - тождественная)
+    H1 = compute_hessian_linear_identity(x, w1, b1)
+
+    # 2) Второй слой (Linear + Sigmoid), вход out1
+    w2 = model.layer2.weight  # shape (1, 1)
+    b2 = model.layer2.bias    # shape (1,)
+    z2 = w2 @ out1 + b2
+    out2 = model.sigmoid(z2)  # сигмоид
+    H2 = compute_hessian_linear_sigmoid(out1.view(-1), w2, b2)
+
+    # 3) Третий слой (Linear + Sigmoid), вход out2
+    w3 = model.layer3.weight
+    b3 = model.layer3.bias
+    z3 = w3 @ out2 + b3
+    out3 = model.sigmoid3(z3)
+    H3 = compute_hessian_linear_sigmoid(out2.view(-1), w3, b3)
+
+    # 4) Четвёртый слой (Linear + Sigmoid), вход out3
+    w4 = model.layer4.weight
+    b4 = model.layer4.bias
+    z4 = w4 @ out3 + b4
+    out4 = model.sigmoid4(z4)
+    H4 = compute_hessian_linear_sigmoid(out3.view(-1), w4, b4)
+
+    # 5) Пятый слой (Linear + Sigmoid), вход out4
+    w5 = model.layer5.weight
+    b5 = model.layer5.bias
+    z5 = w5 @ out4 + b5
+    out5 = model.sigmoid5(z5)
+    H5 = compute_hessian_linear_sigmoid(out4.view(-1), w5, b5)
+
+    # 6) Шестой слой (Linear + Sigmoid), вход out5
+    w6 = model.layer6.weight
+    b6 = model.layer6.bias
+    z6 = w6 @ out5 + b6
+    out6 = model.sigmoid6(z6)
+    H6 = compute_hessian_linear_sigmoid(out5.view(-1), w6, b6)
+
+    return [H1, H2, H3, H4, H5, H6]
+
+
+# ============================ Пояснение к работе кода ============================
+#
+# 1. Шаблон вычисления Гессе для функции y = σ(w^T x + b):
+#    - Сначала считаем линейную комбинацию z = w^T x + b.
+#    - Вычисляем значение σ(z), а также первую и вторую производные (σ'(z), σ''(z)).
+#    - Матрица Гессе H будет иметь размер (количество_параметров, количество_параметров),
+#      где "количество_параметров" = (число компонент в w) + (1 для b).
+#    - Заполняем H, пользуясь тем, что выход скалярный, и полагая:
+#         H[i, j] = σ''(z) * x_i * x_j,   (i, j < размерности w)
+#         H[i, b] = σ''(z) * x_i,
+#         H[b, b] = σ''(z).
+#    - Индексы i, j пробегают все компоненты w.
+#
+# 2. Для линейного слоя без активации (первый слой в модели) матрица Гессе
+#    тождественно равна 0, так как y = w^T x + b — линейная функция по параметрам.
+#
+# 3. Так как в данной модели все выходы скалярные (out_features=1) и
+#    вход в слой после первого также скалярный (in_features=1),
+#    то начиная со второго слоя w имеет размер (1 x 1), а x — скаляр.
+#    Поэтому после разворачивания тензоров (view(-1)) у w будет один параметр на вес и один на смещение.
+#    Соответственно размер Гессе — 2 x 2.
+#    Для первого слоя, где in_features = input_size, размер Гессе будет (input_size + 1) x (input_size + 1),
+#    но он равен нулю (нет нелинейности).
+#
+# ============================ Пример использования ============================
+#
+# >>> import torch
+# >>> model = BrokenPerceptron(input_size=2)  # Например, вход размерности 2
+# >>> x = torch.tensor([0.5, -1.0])           # Один входной пример
+# >>> hessians = compute_hessians_for_broken_perceptron(model, x)
+# >>> for i, H in enumerate(hessians, start=1):
+# ...     print(f"Гессиан слоя {i}:\n", H)
+# ...
+# (В консоли увидите 6 матриц Гессе, первая — нулевая, остальные 2x2.)
