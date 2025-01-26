@@ -76,6 +76,16 @@ def chunkify_model_with_activations(model: nn.Module):
     Возвращает список chunk'ов: [ (mod0, act0), (mod1, act1), ... ]
     """
     modules = list(model.children())
+    def flatten_modules(modules):
+        flattened = []
+        for mod in modules:
+            if isinstance(mod, nn.ModuleList):
+                flattened.extend(flatten_modules(mod))
+            else:
+                flattened.append(mod)
+        return flattened
+
+    modules = flatten_modules(modules)
     chunks = []
     skip_next = False
     i = 0
