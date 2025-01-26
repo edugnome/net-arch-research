@@ -52,9 +52,11 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 784,
         "out": 10,
         "hidden_layers": {
-            "no":   [32, 16, 8],
-            "sure": [1024, 512, 256],
-            "huge": [4096, 2048, 1024],
+            # Было no=[32,16,8], sure=[1024,512,256], huge=[4096,2048,1024]
+            # Переформатировано для большего баланса
+            "no":   [64, 32, 16],
+            "sure": [256, 128, 64],
+            "huge": [1024, 512, 256],
         },
         "architecture_params": {
             "activation": "ReLU",
@@ -98,9 +100,10 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 784,
         "out": 10,
         "hidden_layers": {
-            "no":   [32, 16, 8],
-            "sure": [512, 256, 128],
-            "huge": [2048, 1024, 512],
+            # Было no=[32,16,8], sure=[512,256,128], huge=[2048,1024,512]
+            "no":   [64, 32, 16],
+            "sure": [256, 128, 64],
+            "huge": [1024, 512, 256],
         },
         "architecture_params": {
             "activation": "ReLU",
@@ -113,9 +116,10 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 784,
         "out": 47,
         "hidden_layers": {
-            "no":   [32, 16, 8],
-            "sure": [512, 256, 128],
-            "huge": [2048, 1024, 512],
+            # Аналогично
+            "no":   [64, 32, 16],
+            "sure": [256, 128, 64],
+            "huge": [1024, 512, 256],
         },
         "architecture_params": {
             "activation": "ReLU",
@@ -278,7 +282,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 5,
         "out": 2,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },

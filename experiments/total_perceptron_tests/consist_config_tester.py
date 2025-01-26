@@ -13,14 +13,14 @@ def validate_data_configs():
 
             if X_train.shape[0] != y_train.shape[0] or X_test.shape[0] != y_test.shape[0]:
                 print(f"⭕ Размерности X и y не совпадают: X_train: {X_train.shape}, y_train: {y_train.shape}, X_test: {X_test.shape}, y_test: {y_test.shape}")
-                return None
+                return False
             print("Проверка пройдена ✅")
 
     for task_type, datasets_info in DATASET_CONFIG.items():
         for dataset_name in datasets_info.keys():
             if dataset_name not in DATASET_ARCHITECTURE_CONFIGS:
                 print(f"Параметры сети для '{dataset_name}' не найдены в DATASET_ARCHITECTURE_CONFIGS ⭕")
-                return None
+                return False
             else:
                 print(f"'{dataset_name}' найден в DATASET_ARCHITECTURE_CONFIGS ✅")
     
@@ -34,7 +34,7 @@ def validate_data_configs():
 
             if model_data["type"] != task_type:
                 print(f"⭕ Тип задачи '{task_type}' не совпадает с типом задачи '{model_data['type']}' для '{dataset_name}'")
-                return None
+                return False
 
             try:
                 with torch.no_grad():
@@ -56,7 +56,7 @@ def validate_data_configs():
             except Exception as e:
                 print(f"⭕ Ошибка: {str(e)}")
                 print(traceback.format_exc())
-                return None
+                return False
             print("Проверка пройдена ✅")
     
     return True

@@ -7,17 +7,17 @@
    - Создаёт DataLoader-ы для train/test
    - Организует обучение (цикл по итерациям)
    - Логирует процесс обучения в файл
-   - Сохраняет модель и метаданные на каждой итерации
+   - Сохраняет результаты обучения и метаданные на каждой Nй итерации
 
 2. ClassificationTrainer(BaseTrainer):
    - Реализует compute_metrics() для задач классификации:
        Accuracy, Precision, Recall, F1, ROC, AUC
-   - Сохраняет чекпоинты и метаданные
+   - Сохраняет метаданные
 
 3. RegressionTrainer(BaseTrainer):
    - Реализует compute_metrics() для задач регрессии:
        R2, MAE, RMSE
-   - Сохраняет чекпоинты и метаданные
+   - Сохраняет метаданные
 
 **Примечания**:
 - Для датасетов используем структуру (из `DATASET_CONFIG`), где есть:
@@ -118,6 +118,7 @@ class Trainer(ABC):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.train_loader, self.test_loader = self._prepare_dataloaders()
+        self.trained_results = {}
 
     def _prepare_dataloaders(self) -> Tuple[DataLoader, DataLoader]:
         """
@@ -154,11 +155,16 @@ class Trainer(ABC):
     def train_all_variants(self):
         """
         Запускает обучение для всех трёх типов персептронов: "no", "sure", "huge".
+        Возвращает словарь с результатами обучения для каждого типа.
         """
         for model_type in ["no", "sure", "huge"]:
-            self._train_one_variant(model_type)
+            train_result = self._train_one_variant(model_type)
+            print(f"Training for {model_type} approximation result: {train_result}")
+            self.trained_results[model_type] = train_result
 
-    def _train_one_variant(self, model_type: str):
+        return self.trained_results
+
+    def _train_one_variant(self, model_type: str) -> bool:
         """
         Обучение одной модели (одного варианта).
           - Создаём модель
@@ -169,6 +175,8 @@ class Trainer(ABC):
               - собираем метрики (train, а также eval)
               - логируем
               - сохраняем чекпоинт + data.pkl
+        Возвращает True, если сеть обучена (крайне низкий loss).
+        Возвращает False, если обучение не завершено (достигнуто self.iterations).
         """
         model = create_model(self.dataset_name, model_type).to(self.device)
         optimizer = self.optimizer_cls(model.parameters(), **self.optimizer_args)
@@ -211,7 +219,7 @@ class Trainer(ABC):
 
                 if loss.item() < 1e-2:
                     print(f"Loss is too low ({loss.item():.4f}), stopping training.")
-                    break
+                    return True
 
                 log_line = (
                     f"Iter {iteration_count} | "
@@ -226,9 +234,22 @@ class Trainer(ABC):
                 # ckpt_path = os.path.join(save_dir, f"{iteration_count}-model.pth")
                 # torch.save(model.state_dict(), ckpt_path)
 
-                self.save_model_data(model, batch_x, grads, save_dir, iteration_count)
+                if iteration_count % 50 == 0:
+                    self.save_model_data(model, batch_x, grads, test_metrics, \
+                                         loss, save_dir, iteration_count)
 
-    def save_model_data(self, model, input, grads, save_dir, iteration_count):
+        return False
+
+    def save_model_data(
+        self,
+        model: nn.Module,
+        input: torch.Tensor,
+        grads: Dict[str, torch.Tensor],
+        test_metrics: Dict[str, float],
+        loss: torch.Tensor, # float
+        save_dir: str,
+        iteration_count: int
+    ) -> None:
         params = dict(model.named_parameters())
         params_ranks = {}
         params_spectral = {}
@@ -272,6 +293,10 @@ class Trainer(ABC):
                 meta_data[past_identifier]["bias_spectral"] = params_spectral[name]
                 meta_data[past_identifier]["bias_gradient"] = grads[name].detach().cpu().tolist()
                 meta_data[past_identifier]["bias_gradient_spectral"] = grad_spectral[name]
+
+        meta_data["iteration"] = iteration_count
+        meta_data["scores"] = test_metrics
+        meta_data["scores"]["train_loss"] = float(loss.item())
 
         pkl_path = os.path.join(save_dir, f"{iteration_count}-data.pkl")
         with open(pkl_path, "wb") as pkl_f:
