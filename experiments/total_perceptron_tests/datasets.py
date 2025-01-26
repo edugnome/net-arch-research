@@ -386,7 +386,7 @@ def prepare_energy_efficiency_data():
 
 def prepare_airfoil_data():
     # Предполагаем, что TSV лежит в ./data/airfoil_self_noise.csv
-    df = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/airfoil_self_noise.csv", sep="\t", header=None))
+    df = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/airfoil_self_noise.csv"), sep="\t", header=None)
     X = df.iloc[:, :-1].values
     y = df.iloc[:, -1].values
     scaler = StandardScaler().fit(X)

@@ -235,6 +235,8 @@ class Trainer(ABC):
                 # torch.save(model.state_dict(), ckpt_path)
 
                 if iteration_count % 50 == 0:
+                    print(f"Saving model data at iteration {iteration_count}")
+                    log_f.write(f"Saving model data at iteration {iteration_count}\n")
                     self.save_model_data(model, batch_x, grads, test_metrics, \
                                          loss, save_dir, iteration_count)
 
@@ -316,6 +318,9 @@ class Trainer(ABC):
 #      Трейнер для классификации (Accuracy, Precision, Recall, ROC, AUC, F1)  #
 ###############################################################################
 class ClassificationTrainer(Trainer):
+    def __init__(self, dataset_name: str, batch_size: int, **kwargs):
+        super().__init__(dataset_name, "classification", batch_size=batch_size, **kwargs)
+
     def evaluate(self, model: nn.Module) -> Dict[str, float]:
         model.eval()
         all_preds = []
@@ -381,6 +386,9 @@ class ClassificationTrainer(Trainer):
 #      Трейнер для регрессии (R2, MAE, RMSE)                                  #
 ###############################################################################
 class RegressionTrainer(Trainer):
+    def __init__(self, dataset_name: str, batch_size: int, **kwargs):
+        super().__init__(dataset_name, "regression", batch_size=batch_size, **kwargs)
+
     def evaluate(self, model: nn.Module) -> Dict[str, float]:
         model.eval()
         all_preds = []
@@ -422,14 +430,12 @@ class RegressionTrainer(Trainer):
 if __name__ == "__main__":
     trainer = ClassificationTrainer(
         dataset_name="Make Biclusters",
-        dataset_type="classification",
         batch_size=32
     )
     trainer.train_all_variants()
 
     reg_trainer = RegressionTrainer(
         dataset_name="Energy Efficiency",
-        dataset_type="regression",
         batch_size=16
     )
     reg_trainer.train_all_variants()
