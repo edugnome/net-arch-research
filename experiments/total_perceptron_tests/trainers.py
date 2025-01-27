@@ -257,6 +257,8 @@ class Trainer(ABC):
         save_dir: str,
         iteration_count: int
     ) -> None:
+        print("Extract model data to CPU...")
+
         # Clone tensors to CPU at the start
         model = model.cpu()
         input = input.cpu()
@@ -266,24 +268,29 @@ class Trainer(ABC):
         params_ranks = {}
         params_spectral = {}
 
+        print("Computing spectral statistics for weights...")
         for name, param in params.items():
             if param.dim() == 2:
                 params_ranks[name] = get_rank(param)
             params_spectral[name] = compute_tensor_statistics(param)
 
+        print("Computing Hessians...")
         # Compute Hessians with CPU tensors
         hess = compute_local_hessians_for_chunks(model, input)
         # Move Hessians to CPU immediately after computation
         hess = {i: h.cpu() for i, h in hess.items()}
-        
+
+        print("Computing hessian spectral statistics...")
         hess_spectral = {i: compute_tensor_statistics(hessian) for i, hessian in hess.items()}
         hess_eigs = {i: get_eigenvalues(hessian) for i, hessian in hess.items()}
         hess_eigs_spectral = {i: compute_tensor_statistics(eigs) for i, eigs in hess_eigs.items()}
         hess_ranks = {i: get_rank(hessian) for i, hessian in hess.items()}
         hess_eigs_conditionals = {i: compute_condition_number(eigs) for i, eigs in hess_eigs.items()}
 
+        print("Computing gradient spectral statistics...")
         grad_spectral = {name: compute_tensor_statistics(grad) for name, grad in grads.items()}
 
+        print("Saving model data to pickle...")
         meta_data = {}
         layer_idx = 0
         for name, param in params.items():
@@ -318,6 +325,7 @@ class Trainer(ABC):
         with open(pkl_path, "wb") as pkl_f:
             pickle.dump(meta_data, pkl_f)
 
+        print(f"Model data saved to {pkl_path}")
         model = model.to(self.device)
 
     @abstractmethod
