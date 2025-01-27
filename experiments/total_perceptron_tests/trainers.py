@@ -80,7 +80,8 @@ class Trainer(ABC):
                  dataset_name: str,
                  dataset_type: str,  # "classification" или "regression"
                  datetime_str: str = None,
-                 batch_size: int = 64):
+                 batch_size: int = 64,
+                 device: str = "cuda"):
         """
         Параметры
         ---------
@@ -93,6 +94,8 @@ class Trainer(ABC):
             Если None, то берётся текущая дата.
         batch_size : int
             Размер batch для DataLoader.
+        device : str
+            "cuda" или "cpu" для выбора устройства, на котором будет идти обучение.
         """
         self.dataset_name = dataset_name
         self.dataset_type = dataset_type
@@ -115,7 +118,7 @@ class Trainer(ABC):
 
         self.dataset_preparer = self.dataset_conf["DatasetPreparer"]
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
 
         self.train_loader, self.test_loader = self._prepare_dataloaders()
         self.trained_results = {}
@@ -239,6 +242,8 @@ class Trainer(ABC):
                     log_f.write(f"Saving model data at iteration {iteration_count}\n")
                     self.save_model_data(model, batch_x, grads, test_metrics, \
                                          loss, save_dir, iteration_count)
+
+                torch.cuda.empty_cache()
 
         return False
 
