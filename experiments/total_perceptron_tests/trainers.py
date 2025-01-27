@@ -253,20 +253,29 @@ class Trainer(ABC):
         input: torch.Tensor,
         grads: Dict[str, torch.Tensor],
         test_metrics: Dict[str, float],
-        loss: torch.Tensor, # float
+        loss: torch.Tensor,
         save_dir: str,
         iteration_count: int
     ) -> None:
-        params = dict(model.named_parameters())
+        # Clone tensors to CPU at the start
+        model = model.cpu()
+        input = input.cpu()
+        grads = {k: v.cpu() for k, v in grads.items()}
+        params = {name: param.cpu() for name, param in model.named_parameters()}
+
         params_ranks = {}
         params_spectral = {}
 
         for name, param in params.items():
-            if param.dim() == 2:  # Проверяем, что параметр является матрицей
+            if param.dim() == 2:
                 params_ranks[name] = get_rank(param)
             params_spectral[name] = compute_tensor_statistics(param)
 
+        # Compute Hessians with CPU tensors
         hess = compute_local_hessians_for_chunks(model, input)
+        # Move Hessians to CPU immediately after computation
+        hess = {i: h.cpu() for i, h in hess.items()}
+        
         hess_spectral = {i: compute_tensor_statistics(hessian) for i, hessian in hess.items()}
         hess_eigs = {i: get_eigenvalues(hessian) for i, hessian in hess.items()}
         hess_eigs_spectral = {i: compute_tensor_statistics(eigs) for i, eigs in hess_eigs.items()}
@@ -281,24 +290,24 @@ class Trainer(ABC):
             layer_identifier = f"layer.{layer_idx}"
             if name.endswith("weight"):
                 meta_data[layer_identifier] = {
-                    "weights": param.detach().cpu().tolist(),
-                    "weights_rank": params_ranks[name].detach().cpu().tolist(),
+                    "weights": param.tolist(),
+                    "weights_rank": params_ranks[name].tolist(),
                     "weights_spectral": params_spectral[name],
                     "hessian": hess[layer_idx].tolist(),
                     "hessian_spectral": hess_spectral[layer_idx],
                     "hessian_eigens": hess_eigs[layer_idx].tolist(),
                     "hessian_eigens_spectral": hess_eigs_spectral[layer_idx],
-                    "hessian_rank": int(hess_ranks[layer_idx].detach().cpu().long()),
+                    "hessian_rank": int(hess_ranks[layer_idx].long()),
                     "hessian_condition": hess_eigs_conditionals[layer_idx],
-                    "gradient": grads[name].detach().cpu().tolist(),
+                    "gradient": grads[name].tolist(),
                     "gradient_spectral": grad_spectral[name]
                 }
                 layer_idx += 1
             elif name.endswith("bias"):
                 past_identifier = f"layer.{layer_idx - 1}"
-                meta_data[past_identifier]["bias"] = param.detach().cpu().tolist()
+                meta_data[past_identifier]["bias"] = param.tolist()
                 meta_data[past_identifier]["bias_spectral"] = params_spectral[name]
-                meta_data[past_identifier]["bias_gradient"] = grads[name].detach().cpu().tolist()
+                meta_data[past_identifier]["bias_gradient"] = grads[name].tolist()
                 meta_data[past_identifier]["bias_gradient_spectral"] = grad_spectral[name]
 
         meta_data["iteration"] = iteration_count
@@ -308,6 +317,8 @@ class Trainer(ABC):
         pkl_path = os.path.join(save_dir, f"{iteration_count}-data.pkl")
         with open(pkl_path, "wb") as pkl_f:
             pickle.dump(meta_data, pkl_f)
+
+        model = model.to(self.device)
 
     @abstractmethod
     def evaluate(self, model: nn.Module) -> Dict[str, float]:

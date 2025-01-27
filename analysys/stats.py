@@ -36,9 +36,9 @@ def compute_tensor_statistics(t: torch.Tensor, fs=1.0):
     """
 
     # Преобразуем в numpy
-    arr = t.detach().clone().flatten()
-    arr_numpy = arr.cpu().numpy()
-    
+    arr = t.cpu().detach().flatten()
+    arr_numpy = arr.numpy()
+
     # Базовая статистика
     results = {
         "mean": float(torch.mean(arr)),

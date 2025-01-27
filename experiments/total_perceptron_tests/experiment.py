@@ -1,9 +1,12 @@
+import torch
 import datetime
 import os
 from typing import TextIO
 from consist_config_tester import validate_data_configs
 from trainers import ClassificationTrainer, RegressionTrainer, Trainer
 from datasets import DATASET_CONFIG
+
+torch.cuda.set_per_process_memory_fraction(0.75, device=0)
 
 
 # Функция для запуска обучения для всех датасетов
