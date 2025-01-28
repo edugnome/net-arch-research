@@ -47,23 +47,23 @@ DATASET_ARCHITECTURE_CONFIGS = {
     #         "batchnorm": False
     #     }
     # },
-    "Fashion-MNIST": {
-        "type": "classification",
-        "in": 784,
-        "out": 10,
-        "hidden_layers": {
-            # Было no=[32,16,8], sure=[1024,512,256], huge=[4096,2048,1024]
-            # Переформатировано для большего баланса
-            "no":   [64, 32, 16],
-            "sure": [256, 128, 64],
-            "huge": [1024, 512, 256],
-        },
-        "architecture_params": {
-            "activation": "ReLU",
-            "activation_args": {"inplace": True},
-            "batchnorm": False
-        }
-    },
+    # "Fashion-MNIST": {
+    #     "type": "classification",
+    #     "in": 784,
+    #     "out": 10,
+    #     "hidden_layers": {
+    #         # Было no=[32,16,8], sure=[1024,512,256], huge=[4096,2048,1024]
+    #         # Переформатировано для большего баланса
+    #         "no":   [64, 32, 16],
+    #         "sure": [256, 128, 64],
+    #         "huge": [1024, 512, 256],
+    #     },
+    #     "architecture_params": {
+    #         "activation": "ReLU",
+    #         "activation_args": {"inplace": True},
+    #         "batchnorm": False
+    #     }
+    # },
     # "CIFAR-10": {
     #     "type": "classification",
     #     "in": 3 * 32 * 32,  # 3072
@@ -80,59 +80,59 @@ DATASET_ARCHITECTURE_CONFIGS = {
     #         "batchnorm": False
     #     }
     # },
-    "CIFAR-100": {
-        "type": "classification",
-        "in": 3 * 32 * 32,  # 3072
-        "out": 100,
-        "hidden_layers": {
-            "no":   [128, 64, 32],
-            "sure": [1024, 512, 256],
-            "huge": [2048, 1024, 512],
-        },
-        "architecture_params": {
-            "activation": "LeakyReLU",
-            "activation_args": {"negative_slope": 0.01, "inplace": True},
-            "batchnorm": False
-        }
-    },
-    "KMNIST": {
-        "type": "classification",
-        "in": 784,
-        "out": 10,
-        "hidden_layers": {
-            # Было no=[32,16,8], sure=[512,256,128], huge=[2048,1024,512]
-            "no":   [64, 32, 16],
-            "sure": [256, 128, 64],
-            "huge": [1024, 512, 256],
-        },
-        "architecture_params": {
-            "activation": "ReLU",
-            "activation_args": {"inplace": True},
-            "batchnorm": False
-        }
-    },
-    "EMNIST": {
-        "type": "classification",
-        "in": 784,
-        "out": 47,
-        "hidden_layers": {
-            # Аналогично
-            "no":   [64, 32, 16],
-            "sure": [256, 128, 64],
-            "huge": [1024, 512, 256],
-        },
-        "architecture_params": {
-            "activation": "ReLU",
-            "activation_args": {"inplace": True},
-            "batchnorm": False
-        }
-    },
+    # "CIFAR-100": {
+    #     "type": "classification",
+    #     "in": 3 * 32 * 32,  # 3072
+    #     "out": 100,
+    #     "hidden_layers": {
+    #         "no":   [128, 64, 32],
+    #         "sure": [1024, 512, 256],
+    #         "huge": [2048, 1024, 512],
+    #     },
+    #     "architecture_params": {
+    #         "activation": "LeakyReLU",
+    #         "activation_args": {"negative_slope": 0.01, "inplace": True},
+    #         "batchnorm": False
+    #     }
+    # },
+    # "KMNIST": {
+    #     "type": "classification",
+    #     "in": 784,
+    #     "out": 10,
+    #     "hidden_layers": {
+    #         # Было no=[32,16,8], sure=[512,256,128], huge=[2048,1024,512]
+    #         "no":   [64, 32, 16],
+    #         "sure": [256, 128, 64],
+    #         "huge": [1024, 512, 256],
+    #     },
+    #     "architecture_params": {
+    #         "activation": "ReLU",
+    #         "activation_args": {"inplace": True},
+    #         "batchnorm": False
+    #     }
+    # },
+    # "EMNIST": {
+    #     "type": "classification",
+    #     "in": 784,
+    #     "out": 47,
+    #     "hidden_layers": {
+    #         # Аналогично
+    #         "no":   [64, 32, 16],
+    #         "sure": [256, 128, 64],
+    #         "huge": [1024, 512, 256],
+    #     },
+    #     "architecture_params": {
+    #         "activation": "ReLU",
+    #         "activation_args": {"inplace": True},
+    #         "batchnorm": False
+    #     }
+    # },
     "Iris": {
         "type": "classification",
         "in": 4,
         "out": 3,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -147,7 +147,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 13,
         "out": 3,
         "hidden_layers": {
-            "no":   [4, 2, 2],
+            "no":   [1, 1, 1],
             "sure": [16, 8, 4],
             "huge": [64, 32, 16],
         },
@@ -162,7 +162,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 30,
         "out": 2,
         "hidden_layers": {
-            "no":   [8, 4],
+            "no":   [4, 1],
             "sure": [32, 16],
             "huge": [128, 64],
         },
@@ -177,9 +177,9 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 64,
         "out": 10,
         "hidden_layers": {
-            "no":   [16, 8, 4],
+            "no":   [4, 8, 4],
             "sure": [64, 32, 16],
-            "huge": [256, 128, 64],
+            "huge": [128, 150, 64],
         },
         "architecture_params": {
             "activation": "ReLU",
@@ -192,7 +192,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 57,
         "out": 2,
         "hidden_layers": {
-            "no":   [8, 4],
+            "no":   [2, 4],
             "sure": [32, 16],
             "huge": [128, 64],
         },
@@ -207,7 +207,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 10,
         "out": 2,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [1, 2],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -222,7 +222,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 2,
         "out": 3,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -237,7 +237,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 4,
         "out": 2,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -252,7 +252,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 4,
         "out": 2,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -267,7 +267,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 30,
         "out": 2,
         "hidden_layers": {
-            "no":   [8, 4],
+            "no":   [4, 1],
             "sure": [32, 16],
             "huge": [128, 64],
         },
@@ -297,7 +297,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 5,
         "out": 2,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -312,7 +312,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 2,
         "out": 2,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -327,7 +327,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 2,
         "out": 2,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -342,7 +342,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 10,
         "out": 2,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [1, 1],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -357,7 +357,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 2,
         "out": 2,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -372,7 +372,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 10,
         "out": 3,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [2, 1],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -389,7 +389,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 10,
         "out": 1,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [2, 1],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -404,7 +404,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 9,
         "out": 1,
         "hidden_layers": {
-            "no":   [8, 4, 2],
+            "no":   [2, 4, 4],
             "sure": [32, 16, 8],
             "huge": [64, 32, 16],
         },
@@ -419,7 +419,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 5,
         "out": 1,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -434,7 +434,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 8,
         "out": 1,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [2, 2],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -449,7 +449,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 10,
         "out": 1,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [2, 2],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -479,7 +479,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 10,
         "out": 1,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [2, 2],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -494,7 +494,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 4,
         "out": 1,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -509,7 +509,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 4,
         "out": 1,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -524,7 +524,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 10,
         "out": 1,
         "hidden_layers": {
-            "no":   [4, 2],
+            "no":   [4, 1],
             "sure": [16, 8],
             "huge": [64, 32],
         },
@@ -539,7 +539,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 3,
         "out": 1,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },
@@ -599,7 +599,7 @@ DATASET_ARCHITECTURE_CONFIGS = {
         "in": 3,
         "out": 1,
         "hidden_layers": {
-            "no":   [2, 2],
+            "no":   [1, 1],
             "sure": [8, 4],
             "huge": [32, 16],
         },

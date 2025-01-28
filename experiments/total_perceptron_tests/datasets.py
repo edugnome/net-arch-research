@@ -430,9 +430,9 @@ def prepare_make_biclusters_data():
     make_biclusters: обычно генерирует матрицу с biclusters и матрицы признаков rows, cols.
     Для демонстрации будем брать argmax по строкам в 'rows' как метку класса (упрощённо).
     """
-    X, rows, cols = make_biclusters(shape=(200, 5), n_clusters=2, random_state=42)
-    # X.shape = (200, 5)
-    # rows.shape = (2, 200) -> признак принадлежности каждого из 200 образцов к 2 кластерам
+    X, rows, cols = make_biclusters(shape=(900, 5), n_clusters=4, random_state=42)
+    # X.shape = (900, 5)
+    # rows.shape = (2, 900) -> признак принадлежности каждого из 900 образцов к 4 кластерам
     X = X.astype(np.float32)
     # Упрощённо делаем y = argmax по rows
     y = np.argmax(rows, axis=0).astype(np.int64)
@@ -673,22 +673,22 @@ DATASET_CONFIG = {
         #     "DatasetPreparer": prepare_mnist_data,
         #     "temp": None
         # },
-        "Fashion-MNIST": {
-            "iterations": 10000,
-            "loss_function": {
-                "type": nn.CrossEntropyLoss,
-                "args": {}
-            },
-            "optimizer": {
-                "type": optim.SGD,
-                "args": {
-                    "lr": 0.01,
-                    "momentum": 0.9
-                }
-            },
-            "DatasetPreparer": prepare_fashion_mnist_data,
-            "temp": None
-        },
+        # "Fashion-MNIST": {
+        #     "iterations": 10000,
+        #     "loss_function": {
+        #         "type": nn.CrossEntropyLoss,
+        #         "args": {}
+        #     },
+        #     "optimizer": {
+        #         "type": optim.SGD,
+        #         "args": {
+        #             "lr": 0.01,
+        #             "momentum": 0.9
+        #         }
+        #     },
+        #     "DatasetPreparer": prepare_fashion_mnist_data,
+        #     "temp": None
+        # },
         # "CIFAR-10": {
         #     "iterations": 15000,
         #     "loss_function": {
@@ -705,54 +705,54 @@ DATASET_CONFIG = {
         #     "DatasetPreparer": prepare_cifar10_data,
         #     "temp": None
         # },
-        "CIFAR-100": {
-            "iterations": 20000,
-            "loss_function": {
-                "type": nn.CrossEntropyLoss,
-                "args": {}
-            },
-            "optimizer": {
-                "type": optim.SGD,
-                "args": {
-                    "lr": 0.01,
-                    "momentum": 0.9
-                }
-            },
-            "DatasetPreparer": prepare_cifar100_data,
-            "temp": None
-        },
-        "KMNIST": {
-            "iterations": 10000,
-            "loss_function": {
-                "type": nn.CrossEntropyLoss,
-                "args": {}
-            },
-            "optimizer": {
-                "type": optim.SGD,
-                "args": {
-                    "lr": 0.01,
-                    "momentum": 0.9
-                }
-            },
-            "DatasetPreparer": prepare_kmnist_data,
-            "temp": None
-        },
-        "EMNIST": {
-            "iterations": 10000,
-            "loss_function": {
-                "type": nn.CrossEntropyLoss,
-                "args": {}
-            },
-            "optimizer": {
-                "type": optim.SGD,
-                "args": {
-                    "lr": 0.01,
-                    "momentum": 0.9
-                }
-            },
-            "DatasetPreparer": prepare_emnist_data,
-            "temp": None
-        },
+        # "CIFAR-100": {
+        #     "iterations": 20000,
+        #     "loss_function": {
+        #         "type": nn.CrossEntropyLoss,
+        #         "args": {}
+        #     },
+        #     "optimizer": {
+        #         "type": optim.SGD,
+        #         "args": {
+        #             "lr": 0.01,
+        #             "momentum": 0.9
+        #         }
+        #     },
+        #     "DatasetPreparer": prepare_cifar100_data,
+        #     "temp": None
+        # },
+        # "KMNIST": {
+        #     "iterations": 10000,
+        #     "loss_function": {
+        #         "type": nn.CrossEntropyLoss,
+        #         "args": {}
+        #     },
+        #     "optimizer": {
+        #         "type": optim.SGD,
+        #         "args": {
+        #             "lr": 0.01,
+        #             "momentum": 0.9
+        #         }
+        #     },
+        #     "DatasetPreparer": prepare_kmnist_data,
+        #     "temp": None
+        # },
+        # "EMNIST": {
+        #     "iterations": 10000,
+        #     "loss_function": {
+        #         "type": nn.CrossEntropyLoss,
+        #         "args": {}
+        #     },
+        #     "optimizer": {
+        #         "type": optim.SGD,
+        #         "args": {
+        #             "lr": 0.01,
+        #             "momentum": 0.9
+        #         }
+        #     },
+        #     "DatasetPreparer": prepare_emnist_data,
+        #     "temp": None
+        # },
         "Iris": {
             "iterations": 1000,
             "loss_function": {

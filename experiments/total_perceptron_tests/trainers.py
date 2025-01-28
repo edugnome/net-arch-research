@@ -182,6 +182,7 @@ class Trainer(ABC):
         Возвращает False, если обучение не завершено (достигнуто self.iterations).
         """
         model = create_model(self.dataset_name, model_type).to(self.device)
+        print(self.device)
         optimizer = self.optimizer_cls(model.parameters(), **self.optimizer_args)
 
         save_dir = os.path.join(
@@ -213,11 +214,11 @@ class Trainer(ABC):
 
                 loss = self.loss_fn(preds, batch_y)
                 loss.backward()
-                grads = extract_gradients_by_layer(model)
+                grads = extract_gradients_by_layer(model) if (iteration_count + 1) % 50 == 0 else {}
                 optimizer.step()
 
                 iteration_count += 1
-                test_metrics = self.evaluate(model)
+                test_metrics = self.evaluate(model) if iteration_count % 50 == 0 else {}
                 model.train()
 
                 if loss.item() < 1e-2:
@@ -245,6 +246,9 @@ class Trainer(ABC):
 
                 torch.cuda.empty_cache()
 
+                if iteration_count >= 900 and model_type != "sure":
+                    break
+
         return False
 
     def save_model_data(
@@ -260,10 +264,10 @@ class Trainer(ABC):
         print("Extract model data to CPU...")
 
         # Clone tensors to CPU at the start
-        model = model.cpu()
-        input = input.cpu()
-        grads = {k: v.cpu() for k, v in grads.items()}
-        params = {name: param.cpu() for name, param in model.named_parameters()}
+        # model = model.cpu()
+        # input = input.cpu()
+        # grads = {k: v.cpu() for k, v in grads.items()}
+        params = {name: param for name, param in model.named_parameters()}
 
         params_ranks = {}
         params_spectral = {}
@@ -278,7 +282,9 @@ class Trainer(ABC):
         # Compute Hessians with CPU tensors
         hess = compute_local_hessians_for_chunks(model, input)
         # Move Hessians to CPU immediately after computation
-        hess = {i: h.cpu() for i, h in hess.items()}
+        hess = {i: h for i, h in hess.items()}
+        for i, h in hess.items():
+            print(f"Hessian shape: idx: {i} - {h.shape}")
 
         print("Computing hessian spectral statistics...")
         hess_spectral = {i: compute_tensor_statistics(hessian) for i, hessian in hess.items()}
@@ -293,28 +299,29 @@ class Trainer(ABC):
         print("Saving model data to pickle...")
         meta_data = {}
         layer_idx = 0
+
         for name, param in params.items():
             layer_identifier = f"layer.{layer_idx}"
             if name.endswith("weight"):
                 meta_data[layer_identifier] = {
-                    "weights": param.tolist(),
-                    "weights_rank": params_ranks[name].tolist(),
+                    "weights": param,
+                    "weights_rank": params_ranks[name],
                     "weights_spectral": params_spectral[name],
-                    "hessian": hess[layer_idx].tolist(),
-                    "hessian_spectral": hess_spectral[layer_idx],
-                    "hessian_eigens": hess_eigs[layer_idx].tolist(),
-                    "hessian_eigens_spectral": hess_eigs_spectral[layer_idx],
-                    "hessian_rank": int(hess_ranks[layer_idx].long()),
-                    "hessian_condition": hess_eigs_conditionals[layer_idx],
-                    "gradient": grads[name].tolist(),
+                    "hessian": hess[layer_idx],
+                    "hessian_spectral": hess_spectral[layer_idx] if layer_idx != 0 else {},
+                    "hessian_eigens": hess_eigs[layer_idx] if layer_idx != 0 else {},
+                    "hessian_eigens_spectral": hess_eigs_spectral[layer_idx] if layer_idx != 0 else {},
+                    "hessian_rank": int(hess_ranks[layer_idx].long()) if layer_idx != 0 else {},
+                    "hessian_condition": hess_eigs_conditionals[layer_idx] if layer_idx != 0 else {},
+                    "gradient": grads[name],
                     "gradient_spectral": grad_spectral[name]
                 }
                 layer_idx += 1
             elif name.endswith("bias"):
                 past_identifier = f"layer.{layer_idx - 1}"
-                meta_data[past_identifier]["bias"] = param.tolist()
+                meta_data[past_identifier]["bias"] = param
                 meta_data[past_identifier]["bias_spectral"] = params_spectral[name]
-                meta_data[past_identifier]["bias_gradient"] = grads[name].tolist()
+                meta_data[past_identifier]["bias_gradient"] = grads[name]
                 meta_data[past_identifier]["bias_gradient_spectral"] = grad_spectral[name]
 
         meta_data["iteration"] = iteration_count
