@@ -1273,20 +1273,23 @@ DATASET_CONFIG = {
 }
 
 if __name__ == "__main__":
-    for key, conf in DATASET_CONFIG["classification"].items():
-        print("Checking classification", key)
-        X_train, y_train, X_test, y_test = conf["DatasetPreparer"]()
+    # for key, conf in DATASET_CONFIG["classification"].items():
+    #     print("Checking classification", key)
+    #     X_train, y_train, X_test, y_test = conf["DatasetPreparer"]()
 
-    for key, conf in DATASET_CONFIG["regression"].items():
-        print("Checking regression", key)
-        X_train, y_train, X_test, y_test = conf["DatasetPreparer"]()
+    # for key, conf in DATASET_CONFIG["regression"].items():
+    #     print("Checking regression", key)
+    #     X_train, y_train, X_test, y_test = conf["DatasetPreparer"]()
 
-    # Короткая проверка для одного из новых датасетов классификации:
-    conf = DATASET_CONFIG["classification"]["Make Circles"]
-    X_train, y_train, X_test, y_test = conf["DatasetPreparer"]()
-    print("Make Circles shapes:", X_train.shape, y_train.shape, X_test.shape, y_test.shape)
+    # # Короткая проверка для одного из новых датасетов классификации:
+    # conf = DATASET_CONFIG["classification"]["Make Circles"]
+    # X_train, y_train, X_test, y_test = conf["DatasetPreparer"]()
+    # print("Make Circles shapes:", X_train.shape, y_train.shape, X_test.shape, y_test.shape)
 
-    # И для одного из новых датасетов регрессии:
-    conf_reg = DATASET_CONFIG["regression"]["Make Friedman1"]
-    X_tr, y_tr, X_te, y_te = conf_reg["DatasetPreparer"]()
-    print("Make Friedman1 shapes:", X_tr.shape, y_tr.shape, X_te.shape, y_te.shape)
+    # # И для одного из новых датасетов регрессии:
+    # conf_reg = DATASET_CONFIG["regression"]["Make Friedman1"]
+    # X_tr, y_tr, X_te, y_te = conf_reg["DatasetPreparer"]()
+    # print("Make Friedman1 shapes:", X_tr.shape, y_tr.shape, X_te.shape, y_te.shape)
+
+    print(len(DATASET_CONFIG["classification"]))
+    print(len(DATASET_CONFIG["regression"]))

@@ -80,21 +80,21 @@ DATASET_ARCHITECTURE_CONFIGS = {
     #         "batchnorm": False
     #     }
     # },
-    # "CIFAR-100": {
-    #     "type": "classification",
-    #     "in": 3 * 32 * 32,  # 3072
-    #     "out": 100,
-    #     "hidden_layers": {
-    #         "no":   [128, 64, 32],
-    #         "sure": [1024, 512, 256],
-    #         "huge": [2048, 1024, 512],
-    #     },
-    #     "architecture_params": {
-    #         "activation": "LeakyReLU",
-    #         "activation_args": {"negative_slope": 0.01, "inplace": True},
-    #         "batchnorm": False
-    #     }
-    # },
+    "CIFAR-100": {
+        "type": "classification",
+        "in": 3 * 32 * 32,  # 3072
+        "out": 100,
+        "hidden_layers": {
+            "no":   [128, 64, 32],
+            "sure": [1024, 512, 256],
+            "huge": [2048, 1024, 512],
+        },
+        "architecture_params": {
+            "activation": "LeakyReLU",
+            "activation_args": {"negative_slope": 0.01, "inplace": True},
+            "batchnorm": False
+        }
+    },
     # "KMNIST": {
     #     "type": "classification",
     #     "in": 784,
@@ -724,23 +724,31 @@ def create_model(dataset_name: str, variant: str) -> nn.Module:
 
 
 if __name__ == "__main__":
-    model_no   = create_model("Airfoil Self-Noise", "no")
-    model_sure = create_model("Airfoil Self-Noise", "sure")
-    model_huge = create_model("Airfoil Self-Noise", "huge")
+    # model_no   = create_model("Airfoil Self-Noise", "no")
+    # model_sure = create_model("Airfoil Self-Noise", "sure")
+    # model_huge = create_model("Airfoil Self-Noise", "huge")
     
-    print("Airfoil Self-Noise, NO:")
-    print(model_no.layers)
-    print()
-    print("Airfoil Self-Noise, SURE:")
-    print(model_sure.layers)
-    print()
-    print("Airfoil Self-Noise, HUGE:")
-    print(model_huge.layers)
+    # print("Airfoil Self-Noise, NO:")
+    # print(model_no.layers)
+    # print()
+    # print("Airfoil Self-Noise, SURE:")
+    # print(model_sure.layers)
+    # print()
+    # print("Airfoil Self-Noise, HUGE:")
+    # print(model_huge.layers)
     
-    # Проверим выходные размеры
-    x_dummy = torch.randn(2, DATASET_ARCHITECTURE_CONFIGS["Airfoil Self-Noise"]["in"])
-    out_no   = model_no(x_dummy)
-    out_sure = model_sure(x_dummy)
-    out_huge = model_huge(x_dummy)
-    print("\nShapes:", out_no.shape, out_sure.shape, out_huge.shape)
-    # Должно быть (2, 10) для всех.
+    # # Проверим выходные размеры
+    # x_dummy = torch.randn(2, DATASET_ARCHITECTURE_CONFIGS["Airfoil Self-Noise"]["in"])
+    # out_no   = model_no(x_dummy)
+    # out_sure = model_sure(x_dummy)
+    # out_huge = model_huge(x_dummy)
+    # print("\nShapes:", out_no.shape, out_sure.shape, out_huge.shape)
+    # # Должно быть (2, 10) для всех.
+
+    for dataset_name in DATASET_ARCHITECTURE_CONFIGS.keys():
+        for variant in ["no", "sure", "huge"]:
+            print(f"Для '{dataset_name}' ({variant}):")
+            model = create_model(dataset_name, variant)
+            total_params = sum(p.numel() for p in model.parameters())
+            params_str = f"  Total parameters: {total_params:,}"
+            print(params_str)
