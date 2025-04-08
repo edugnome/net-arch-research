@@ -1,0 +1,226 @@
+\documentclass[12pt]{article}
+\usepackage[T2A]{fontenc} 
+\usepackage[utf8]{inputenc} 
+\usepackage[russian]{babel} 
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{mathtools}
+\geometry{a4paper, margin=1in}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+
+\title{Layerwise Hessian}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Введение}
+В данной работе представлен формальный математический анализ алгоритма вычисления локальных матриц Гессе для нейронных сетей, основанный на поблочной декомпозиции.
+
+\section{Математическая модель}
+
+\subsection{Декомпозиция нейронной сети}
+
+\begin{definition}
+Пусть $\mathcal{F}: \mathbb{R}^d \rightarrow \mathbb{R}^m$ - нейронная сеть с параметрами $\theta \in \mathbb{R}^P$. Обозначим через $x \in \mathbb{R}^d$ входные данные сети, а через $\mathcal{F}(x; \theta)$ - выход сети при данных параметрах.
+\end{definition}
+
+\begin{definition}
+Функциональным блоком (chunk) $C_i$ называется пара модулей $(P_i, A_i)$, где:
+\begin{itemize}
+    \item $P_i: \mathbb{R}^{d_i} \times \mathbb{R}^{p_i} \rightarrow \mathbb{R}^{q_i}$ - параметризованное преобразование с параметрами $\theta_i \in \mathbb{R}^{p_i}$
+    \item $A_i: \mathbb{R}^{q_i} \rightarrow \mathbb{R}^{q_i}$ - активационная функция (потенциально тождественная)
+\end{itemize}
+\end{definition}
+
+Нейронную сеть $\mathcal{F}$ можно представить как последовательность $n$ функциональных блоков:
+\begin{equation}
+\mathcal{F}(x; \theta) = (C_n \circ C_{n-1} \circ \ldots \circ C_1)(x)
+\end{equation}
+где $C_i(z) = A_i(P_i(z; \theta_i))$ для входа $z$ и $\theta = \{\theta_1, \theta_2, \ldots, \theta_n\}$.
+
+\subsection{Промежуточные представления}
+\begin{definition}
+Промежуточным представлением $z_i$ назовём вход в блок $C_i$:
+\begin{equation}
+z_i = 
+\begin{cases}
+x, & \text{если } i = 1 \\
+(C_{i-1} \circ \ldots \circ C_1)(x), & \text{если } i > 1
+\end{cases}
+\end{equation}
+
+Соответственно, выход блока $C_i$ обозначим как:
+\begin{equation}
+y_i = C_i(z_i) = A_i(P_i(z_i; \theta_i))
+\end{equation}
+\end{definition}
+
+\section{Локальные матрицы Гессе}
+
+\subsection{Определение скалярной функции блока}
+
+\begin{definition}
+Для блока $C_i$ определим локальную скалярную функцию $S_i: \mathbb{R}^{p_i} \rightarrow \mathbb{R}$ как:
+\begin{equation}
+S_i(\theta_i) = \varphi(A_i(P_i(z_i; \theta_i)))
+\end{equation}
+где $\varphi: \mathbb{R}^{q_i} \rightarrow \mathbb{R}$ - функция агрегации, обычно $\varphi(y) = \sum_{j=1}^{q_i} y_j$.
+\end{definition}
+
+\begin{definition}
+Локальной матрицей Гессе $H_i \in \mathbb{R}^{p_i \times p_i}$ для блока $C_i$ называется матрица вторых производных скалярной функции $S_i$ по параметрам $\theta_i$:
+\begin{equation}
+H_i = \nabla_{\theta_i}^2 S_i(\theta_i) = \left[ \frac{\partial^2 S_i(\theta_i)}{\partial \theta_{i,j} \partial \theta_{i,k}} \right]_{j,k=1}^{p_i}
+\end{equation}
+\end{definition}
+
+\subsection{Вычисление матрицы Гессе по строкам}
+
+\begin{lemma}
+Элементы матрицы Гессе $H_i$ можно вычислять последовательно по строкам:
+\begin{equation}
+\begin{aligned}
+g_i &= \nabla_{\theta_i} S_i(\theta_i) = \left[ \frac{\partial S_i}{\partial \theta_{i,j}} \right]_{j=1}^{p_i} \\
+H_i[j,:] &= \nabla_{\theta_i} g_{i,j} = \nabla_{\theta_i} \left( \frac{\partial S_i}{\partial \theta_{i,j}} \right)
+\end{aligned}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+По определению матрицы Гессе, ее элемент $H_i[j,k]$ равен:
+\begin{equation}
+H_i[j,k] = \frac{\partial^2 S_i(\theta_i)}{\partial \theta_{i,j} \partial \theta_{i,k}}
+\end{equation}
+
+Если обозначить $g_{i,j} = \frac{\partial S_i}{\partial \theta_{i,j}}$, то 
+\begin{equation}
+H_i[j,k] = \frac{\partial g_{i,j}}{\partial \theta_{i,k}}
+\end{equation}
+
+Таким образом, $j$-я строка $H_i$ представляет собой градиент $j$-й компоненты градиента функции $S_i$.
+\end{proof}
+
+\section{Алгоритм вычисления локальных гессианов}
+
+Представим формальный алгоритм вычисления локальных матриц Гессе:
+
+\begin{algorithm}
+\caption{Вычисление локальных матриц Гессе}
+\begin{algorithmic}[1]
+\Require Нейронная сеть $\mathcal{F}$, входные данные $x \in \mathbb{R}^d$, функция агрегации $\varphi$
+\Ensure Набор локальных матриц Гессе $\{H_1, H_2, \ldots, H_n\}$
+
+\State Разбить $\mathcal{F}$ на функциональные блоки $\{C_1, C_2, \ldots, C_n\}$, где $C_i = (P_i, A_i)$
+
+\For{$i = 1$ до $n$}
+    \State Вычислить $z_i = (C_{i-1} \circ \ldots \circ C_1)(x)$ \Comment{Вход в блок $C_i$}
+    \State Вычислить $y_i = A_i(P_i(z_i; \theta_i))$ \Comment{Выход блока $C_i$}
+    \State Вычислить $S_i = \varphi(y_i)$ \Comment{Скалярная функция блока}
+    
+    \State Вычислить градиент $g_i = \nabla_{\theta_i} S_i$
+    
+    \State Инициализировать $H_i \in \mathbb{R}^{p_i \times p_i}$ нулевой матрицей
+    
+    \For{$j = 1$ до $p_i$}
+        \If{$g_{i,j}$ зависит от $\theta_i$}
+            \State Вычислить $H_i[j,:] = \nabla_{\theta_i} g_{i,j}$
+        \EndIf
+    \EndFor
+\EndFor
+
+\State \Return $\{H_1, H_2, \ldots, H_n\}$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Математические детали реализации}
+
+\subsection{Вычисление градиента $g_i$}
+В контексте автоматического дифференцирования градиент $g_i$ вычисляется как:
+\begin{equation}
+g_i = \nabla_{\theta_i} S_i = \frac{\partial S_i}{\partial y_i} \cdot \frac{\partial y_i}{\partial P_i} \cdot \frac{\partial P_i}{\partial \theta_i}
+\end{equation}
+
+где:
+\begin{itemize}
+\item $\frac{\partial S_i}{\partial y_i} = \nabla_{y_i} \varphi(y_i)$ - градиент функции агрегации
+\item $\frac{\partial y_i}{\partial P_i} = \nabla_{P_i} A_i(P_i)$ - якобиан активационной функции
+\item $\frac{\partial P_i}{\partial \theta_i}$ - якобиан параметризованного преобразования по его параметрам
+\end{itemize}
+
+\subsection{Вычисление строк матрицы Гессе}
+Для каждой компоненты $j$ градиента $g_i$ вычисляется ее градиент по параметрам $\theta_i$:
+\begin{equation}
+H_i[j,:] = \nabla_{\theta_i} g_{i,j} = \nabla_{\theta_i} \left( \frac{\partial S_i}{\partial \theta_{i,j}} \right)
+\end{equation}
+
+Это требует повторного применения автоматического дифференцирования к каждой компоненте градиента.
+
+\subsection{Нейросетевой контекст}
+В контексте нейронных сетей часто:
+\begin{itemize}
+\item $P_i$ - это линейное преобразование $P_i(z_i; \theta_i) = W_i z_i + b_i$, где $\theta_i = \{W_i, b_i\}$
+\item $A_i$ - это нелинейная функция активации, например, ReLU, Sigmoid или Tanh
+\item $\varphi(y_i) = \sum_{j=1}^{q_i} y_{i,j}$ - суммирование всех компонент выходного вектора
+\end{itemize}
+
+\section{Свойства локальных матриц Гессе}
+
+\begin{theorem}
+Для дважды дифференцируемой функции $S_i$ локальная матрица Гессе $H_i$ обладает следующими свойствами:
+\begin{enumerate}
+\item $H_i$ симметрична: $H_i[j,k] = H_i[k,j]$ для всех $j,k = 1,2,\ldots,p_i$
+\item Собственные значения $H_i$ характеризуют локальную кривизну функции $S_i$ в направлениях собственных векторов
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+1. Симметричность следует из теоремы Шварца о смешанных частных производных для достаточно гладких функций:
+\begin{equation}
+\frac{\partial^2 S_i}{\partial \theta_{i,j} \partial \theta_{i,k}} = \frac{\partial^2 S_i}{\partial \theta_{i,k} \partial \theta_{i,j}}
+\end{equation}
+
+2. Для любого вектора $v \in \mathbb{R}^{p_i}$ имеем:
+\begin{equation}
+v^T H_i v = \sum_{j,k=1}^{p_i} v_j v_k \frac{\partial^2 S_i}{\partial \theta_{i,j} \partial \theta_{i,k}}
+\end{equation}
+что соответствует второй производной функции $S_i$ в направлении $v$, т.е. характеризует кривизну функции в этом направлении.
+\end{proof}
+
+\section{Вычислительная сложность}
+
+\begin{theorem}
+Если $p = \max_{i} p_i$ - максимальное число параметров в блоке, а $n$ - число блоков, то вычислительная сложность алгоритма составляет $O(np^2)$.
+\end{theorem}
+
+\begin{proof}
+Для каждого из $n$ блоков требуется:
+\begin{itemize}
+\item Вычисление промежуточного представления: $O(p)$
+\item Вычисление градиента функции блока: $O(p)$
+\item Вычисление $p$ строк матрицы Гессе, каждая размера $p$: $O(p^2)$
+\end{itemize}
+Таким образом, общая сложность составляет $O(n(p + p + p^2)) = O(np^2)$.
+\end{proof}
+
+\section{Заключение}
+
+Локальные матрицы Гессе предоставляют детальное представление о геометрических свойствах нейронной сети на уровне отдельных функциональных блоков. Это позволяет:
+
+\begin{itemize}
+\item Анализировать локальную кривизну функции потерь в окрестности текущего набора параметров
+\item Выявлять блоки с высокой чувствительностью к изменениям параметров
+\item Оптимизировать скорость обучения для отдельных компонентов сети
+\item Идентифицировать архитектурные особенности, влияющие на стабильность обучения
+\end{itemize}
+
+Предложенный алгоритм обеспечивает эффективное вычисление локальных матриц Гессе с помощью последовательного применения автоматического дифференцирования к отдельным компонентам градиента.
+
+\end{document}
