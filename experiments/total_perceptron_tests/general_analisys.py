@@ -60,12 +60,14 @@ from scipy.stats import shapiro
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Analyze model dumps (Hessian, spectral, weights, etc.).")
+    parser = argparse.ArgumentParser(
+        description="Analyze model dumps (Hessian, spectral, weights, etc.)."
+    )
     parser.add_argument(
         "--dumps_folder",
         type=str,
         required=True,
-        help="Path to folder containing *.pickle dumps with the specified structure."
+        help="Path to folder containing *.pickle dumps with the specified structure.",
     )
     return parser.parse_args()
 
@@ -89,7 +91,7 @@ def load_dump(pickle_path: str) -> dict:
     return data
 
 
-def calc_tensor_stats(tensor_data) -> dict:
+def calc_tensor_stats(tensor_data) -> dict | None:
     """
     Вычисляет mean, std, min, max для массива numpy (или torch.Tensor).
     Возвращает словарь {mean, std, min, max}, либо None, если нет данных.
@@ -105,6 +107,7 @@ def calc_tensor_stats(tensor_data) -> dict:
         # torch.Tensor ?
         try:
             import torch
+
             if isinstance(tensor_data, torch.Tensor):
                 arr = tensor_data.detach().cpu().numpy()
         except ImportError:
@@ -112,19 +115,19 @@ def calc_tensor_stats(tensor_data) -> dict:
         # Или просто np.array(...)
         if arr is None:
             arr = np.array(tensor_data)
-    
+
     if arr.size == 0:
         return None
-    
+
     return {
         "mean": float(np.mean(arr)),
-        "std":  float(np.std(arr)),
-        "min":  float(np.min(arr)),
-        "max":  float(np.max(arr))
+        "std": float(np.std(arr)),
+        "min": float(np.min(arr)),
+        "max": float(np.max(arr)),
     }
 
 
-def calc_eigens_stats(eigens_data) -> dict:
+def calc_eigens_stats(eigens_data) -> dict | None:
     """
     Собственные числа гессиана (или др.), список/массив eigens_data.
     Возвращает {eigens_min, eigens_max, eigens_mean, eigens_sum} либо None.
@@ -135,10 +138,10 @@ def calc_eigens_stats(eigens_data) -> dict:
     if arr.size == 0:
         return None
     return {
-        "eigens_min":  float(np.min(arr)),
-        "eigens_max":  float(np.max(arr)),
+        "eigens_min": float(np.min(arr)),
+        "eigens_max": float(np.max(arr)),
         "eigens_mean": float(np.mean(arr)),
-        "eigens_sum":  float(np.sum(arr))
+        "eigens_sum": float(np.sum(arr)),
     }
 
 
@@ -155,19 +158,19 @@ def extract_spectral_info(layer_dict: dict, field_name: str, prefix: str) -> dic
     sp_data = layer_dict.get(field_name, {})
     if not sp_data:
         # пусто -> всё None
-        for basek in ["mean","std","min","max","skewness","kurtosis"]:
+        for basek in ["mean", "std", "min", "max", "skewness", "kurtosis"]:
             result[f"{prefix}_{basek}"] = None
-        result[f"{prefix}_hist_bins_count"]   = None
-        result[f"{prefix}_hist_counts_sum"]   = None
+        result[f"{prefix}_hist_bins_count"] = None
+        result[f"{prefix}_hist_counts_sum"] = None
         result[f"{prefix}_welch_freqs_count"] = None
-        result[f"{prefix}_welch_psd_sum"]     = None
-        result[f"{prefix}_top_peaks_count"]   = None
+        result[f"{prefix}_welch_psd_sum"] = None
+        result[f"{prefix}_top_peaks_count"] = None
         return result
-    
+
     # базовые
-    for basek in ["mean","std","min","max","skewness","kurtosis"]:
+    for basek in ["mean", "std", "min", "max", "skewness", "kurtosis"]:
         result[f"{prefix}_{basek}"] = sp_data.get(basek, None)
-    
+
     # histogram
     hist_ = sp_data.get("histogram", {})
     bins_ = hist_.get("bins", [])
@@ -178,9 +181,9 @@ def extract_spectral_info(layer_dict: dict, field_name: str, prefix: str) -> dic
     # welch
     welch_ = sp_data.get("welch", {})
     freqs_ = welch_.get("freqs", [])
-    psd_   = welch_.get("psd", [])
+    psd_ = welch_.get("psd", [])
     result[f"{prefix}_welch_freqs_count"] = len(freqs_) if freqs_ else None
-    result[f"{prefix}_welch_psd_sum"]     = float(np.sum(psd_)) if len(psd_)>0 else None
+    result[f"{prefix}_welch_psd_sum"] = float(np.sum(psd_)) if len(psd_) > 0 else None
 
     # top_peaks
     top_peaks_ = sp_data.get("top_peaks", [])
@@ -200,7 +203,7 @@ def extract_fields_one_dump(dump_dict: dict) -> dict:
 
     # Метрики
     scores = dump_dict.get("scores", {})
-    for m in ["Accuracy","Precision","Recall","F1","AUC","train_loss"]:
+    for m in ["Accuracy", "Precision", "Recall", "F1", "AUC", "train_loss"]:
         row[m] = scores.get(m, None)
 
     # Слои
@@ -210,7 +213,7 @@ def extract_fields_one_dump(dump_dict: dict) -> dict:
         layer_name = key.replace(".", "_")  # "layer.0" -> "layer_0"
 
         # hessian_rank, hessian_condition
-        row[f"{layer_name}_hessian_rank"]      = layer_data.get("hessian_rank", None)
+        row[f"{layer_name}_hessian_rank"] = layer_data.get("hessian_rank", None)
         row[f"{layer_name}_hessian_condition"] = layer_data.get("hessian_condition", None)
 
         # hessian_eigens -> min, max, mean, sum
@@ -220,61 +223,61 @@ def extract_fields_one_dump(dump_dict: dict) -> dict:
             for st_key, st_val in eig_stats.items():
                 row[f"{layer_name}_{st_key}"] = st_val
         else:
-            row[f"{layer_name}_eigens_min"]  = None
-            row[f"{layer_name}_eigens_max"]  = None
+            row[f"{layer_name}_eigens_min"] = None
+            row[f"{layer_name}_eigens_max"] = None
             row[f"{layer_name}_eigens_mean"] = None
-            row[f"{layer_name}_eigens_sum"]  = None
+            row[f"{layer_name}_eigens_sum"] = None
 
         # weights -> mean,std,min,max
         w_data = layer_data.get("weights", None)
         w_stats = calc_tensor_stats(w_data)
         if w_stats:
             row[f"{layer_name}_weights_mean_val"] = w_stats["mean"]
-            row[f"{layer_name}_weights_std_val"]  = w_stats["std"]
-            row[f"{layer_name}_weights_min_val"]  = w_stats["min"]
-            row[f"{layer_name}_weights_max_val"]  = w_stats["max"]
+            row[f"{layer_name}_weights_std_val"] = w_stats["std"]
+            row[f"{layer_name}_weights_min_val"] = w_stats["min"]
+            row[f"{layer_name}_weights_max_val"] = w_stats["max"]
         else:
             row[f"{layer_name}_weights_mean_val"] = None
-            row[f"{layer_name}_weights_std_val"]  = None
-            row[f"{layer_name}_weights_min_val"]  = None
-            row[f"{layer_name}_weights_max_val"]  = None
+            row[f"{layer_name}_weights_std_val"] = None
+            row[f"{layer_name}_weights_min_val"] = None
+            row[f"{layer_name}_weights_max_val"] = None
 
         # gradient
         g_data = layer_data.get("gradient", None)
         g_stats = calc_tensor_stats(g_data)
         if g_stats:
             row[f"{layer_name}_gradient_mean_val"] = g_stats["mean"]
-            row[f"{layer_name}_gradient_std_val"]  = g_stats["std"]
-            row[f"{layer_name}_gradient_min_val"]  = g_stats["min"]
-            row[f"{layer_name}_gradient_max_val"]  = g_stats["max"]
+            row[f"{layer_name}_gradient_std_val"] = g_stats["std"]
+            row[f"{layer_name}_gradient_min_val"] = g_stats["min"]
+            row[f"{layer_name}_gradient_max_val"] = g_stats["max"]
         else:
             row[f"{layer_name}_gradient_mean_val"] = None
-            row[f"{layer_name}_gradient_std_val"]  = None
-            row[f"{layer_name}_gradient_min_val"]  = None
-            row[f"{layer_name}_gradient_max_val"]  = None
+            row[f"{layer_name}_gradient_std_val"] = None
+            row[f"{layer_name}_gradient_min_val"] = None
+            row[f"{layer_name}_gradient_max_val"] = None
 
         # bias
         b_data = layer_data.get("bias", None)
         b_stats = calc_tensor_stats(b_data)
         if b_stats:
             row[f"{layer_name}_bias_mean_val"] = b_stats["mean"]
-            row[f"{layer_name}_bias_std_val"]  = b_stats["std"]
-            row[f"{layer_name}_bias_min_val"]  = b_stats["min"]
-            row[f"{layer_name}_bias_max_val"]  = b_stats["max"]
+            row[f"{layer_name}_bias_std_val"] = b_stats["std"]
+            row[f"{layer_name}_bias_min_val"] = b_stats["min"]
+            row[f"{layer_name}_bias_max_val"] = b_stats["max"]
         else:
             row[f"{layer_name}_bias_mean_val"] = None
-            row[f"{layer_name}_bias_std_val"]  = None
-            row[f"{layer_name}_bias_min_val"]  = None
-            row[f"{layer_name}_bias_max_val"]  = None
+            row[f"{layer_name}_bias_std_val"] = None
+            row[f"{layer_name}_bias_min_val"] = None
+            row[f"{layer_name}_bias_max_val"] = None
 
         # Спектральные поля (включая hessian_eigens_spectral)
         sp_fields = [
-            "weights_spectral", 
-            "gradient_spectral", 
-            "bias_spectral", 
+            "weights_spectral",
+            "gradient_spectral",
+            "bias_spectral",
             "bias_gradient_spectral",
             "hessian_spectral",
-            "hessian_eigens_spectral"
+            "hessian_eigens_spectral",
         ]
         for sf in sp_fields:
             prefix = f"{layer_name}_{sf}"
@@ -300,7 +303,7 @@ def build_dataframe(folder_path: str) -> pd.DataFrame:
     return df
 
 
-def plot_all_parameters_dynamics(df: pd.DataFrame, output_dir: str="plots_dynamics"):
+def plot_all_parameters_dynamics(df: pd.DataFrame, output_dir: str = "plots_dynamics"):
     """
     Пошаговая визуализация ВСЕХ числовых полей (кроме iteration).
     Группируем по 6 столбцов на один график.
@@ -315,11 +318,11 @@ def plot_all_parameters_dynamics(df: pd.DataFrame, output_dir: str="plots_dynami
 
     def chunkify(lst, n):
         for i in range(0, len(lst), n):
-            yield lst[i:i+n]
+            yield lst[i : i + n]
 
     splitted = list(chunkify(numeric_cols, chunk_size))
     for idx, group in enumerate(splitted, start=1):
-        fig, ax = plt.subplots(figsize=(10,6))
+        fig, ax = plt.subplots(figsize=(10, 6))
         for col in group:
             # если все NaN — пропустим
             if df[col].notna().sum() == 0:
@@ -336,9 +339,9 @@ def plot_all_parameters_dynamics(df: pd.DataFrame, output_dir: str="plots_dynami
     print(f"[plot_all_parameters_dynamics] Графики сохранены в папке '{output_dir}'.")
 
 
-def correlation_analysis(df: pd.DataFrame, output_dir: str="plots_correlations"):
+def correlation_analysis(df: pd.DataFrame, output_dir: str = "plots_correlations"):
     """
-    Считает корреляцию (Pearson) для всех числовых полей, строит heatmap, 
+    Считает корреляцию (Pearson) для всех числовых полей, строит heatmap,
     а при <=8 столбцах делает pairplot.
     """
     os.makedirs(output_dir, exist_ok=True)
@@ -346,13 +349,13 @@ def correlation_analysis(df: pd.DataFrame, output_dir: str="plots_correlations")
     if "iteration" in numeric_cols:
         numeric_cols.remove("iteration")
 
-    if len(numeric_cols)<2:
+    if len(numeric_cols) < 2:
         print("[correlation_analysis] Недостаточно числовых колонок для анализа корреляции.")
         return
 
     corr_df = df[numeric_cols].corr(method="pearson")
 
-    plt.figure(figsize=(min(20, 0.5*len(numeric_cols)), min(20, 0.5*len(numeric_cols))))
+    plt.figure(figsize=(min(20, 0.5 * len(numeric_cols)), min(20, 0.5 * len(numeric_cols))))
     sns.heatmap(corr_df, annot=False, cmap="RdBu", center=0)
     plt.title("Correlation Matrix (Pearson)")
     plt.tight_layout()
@@ -364,9 +367,9 @@ def correlation_analysis(df: pd.DataFrame, output_dir: str="plots_correlations")
     print(corr_df.round(3))
 
     # pairplot
-    if len(numeric_cols)<=8:
+    if len(numeric_cols) <= 8:
         subdf = df[numeric_cols].dropna()
-        if subdf.shape[0]>1:
+        if subdf.shape[0] > 1:
             sns.pairplot(subdf)
             plt.suptitle("Pairplot of numeric features", y=1.02)
             pairplot_path = os.path.join(output_dir, "pairplot.png")
@@ -386,13 +389,21 @@ def advanced_statistical_analysis(df: pd.DataFrame):
     # Поиск колонок
     interesting_keys = []
     for c in df.columns:
-        if any(sub in c for sub in [
-            "hessian_rank",
-            "hessian_condition",
-            "eigens_min", "eigens_max", "eigens_mean", "eigens_sum",
-            "weights_mean_val", "gradient_mean_val", "bias_mean_val",
-            "_spectral"
-        ]):
+        if any(
+            sub in c
+            for sub in [
+                "hessian_rank",
+                "hessian_condition",
+                "eigens_min",
+                "eigens_max",
+                "eigens_mean",
+                "eigens_sum",
+                "weights_mean_val",
+                "gradient_mean_val",
+                "bias_mean_val",
+                "_spectral",
+            ]
+        ):
             interesting_keys.append(c)
 
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
@@ -415,10 +426,10 @@ def advanced_statistical_analysis(df: pd.DataFrame):
     if test_candidates:
         tcol = test_candidates[0]
         series_ = df_sel[tcol].dropna()
-        if len(series_)>=3:
+        if len(series_) >= 3:
             stat, pval = shapiro(series_)
             print(f"\n[Shapiro] '{tcol}': stat={stat:.4f}, p-value={pval:.4f}")
-            if pval<0.05:
+            if pval < 0.05:
                 print(" => Распределение, скорее всего, не нормальное (p<0.05).")
             else:
                 print(" => Нет оснований отвергать нормальность (p>=0.05).")
@@ -435,12 +446,12 @@ def advanced_statistical_analysis(df: pd.DataFrame):
 
 def optional_cca(df: pd.DataFrame):
     """
-    Пример CCA: 
+    Пример CCA:
      - Группа A: метрики качества (Accuracy, Precision, Recall, F1, AUC)
      - Группа B: всё, что имеет '_mean_val' (weights/gradient/bias) и 'eigens_mean'
        (т.е. среднее собственных чисел гессиана).
     """
-    groupA = ["Accuracy","Precision","Recall","F1","AUC"]
+    groupA = ["Accuracy", "Precision", "Recall", "F1", "AUC"]
     groupA = [g for g in groupA if g in df.columns]
 
     groupB = []
@@ -448,12 +459,12 @@ def optional_cca(df: pd.DataFrame):
         if c.endswith("_mean_val") or c.endswith("_eigens_mean"):
             groupB.append(c)
 
-    if len(groupA)<2 or len(groupB)<2:
+    if len(groupA) < 2 or len(groupB) < 2:
         print("[CCA] Недостаточно признаков в A или B для канонического анализа. Пропускаем.")
         return
 
     subdf = df[groupA + groupB].dropna()
-    if subdf.shape[0]<6:
+    if subdf.shape[0] < 6:
         print("[CCA] Слишком мало строк после удаления NaN.")
         return
 
@@ -471,8 +482,8 @@ def optional_cca(df: pd.DataFrame):
     print("Y_weights:\n", cca.y_weights_)
 
     # scatter
-    plt.figure(figsize=(6,5))
-    plt.scatter(X_c[:,0], Y_c[:,0], alpha=0.7)
+    plt.figure(figsize=(6, 5))
+    plt.scatter(X_c[:, 0], Y_c[:, 0], alpha=0.7)
     plt.xlabel("CCA comp #1 (X)")
     plt.ylabel("CCA comp #1 (Y)")
     plt.title("Canonical Correlation Analysis: 1st component")

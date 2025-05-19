@@ -14,9 +14,9 @@ def run_all_datasets_training():
     # Получаем текущую дату и время
     execution_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     save_dir = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "results",
-            )
+        os.path.dirname(os.path.abspath(__file__)),
+        "results",
+    )
     results_dir = os.path.join(save_dir, f"{execution_date}")
     results_file_path = os.path.join(results_dir, "common_results.txt")
 
@@ -34,38 +34,34 @@ def run_all_datasets_training():
             for dataset_name in datasets_info.keys():
                 start_new_dataset_log(results_file, dataset_type, dataset_name)
 
-                trainer: Trainer = trainer_cls(dataset_name=dataset_name,
-                                               batch_size=4,
-                                               datetime_str=execution_date)
+                trainer: Trainer = trainer_cls(
+                    dataset_name=dataset_name, batch_size=4, datetime_str=execution_date
+                )
                 result = trainer.train_all_variants()
 
                 dataset_evaluation_results_log(results_file, dataset_type, dataset_name, result)
 
+
+def get_current_timestamp() -> str:
+    return datetime.datetime.now().isoformat()
+
+
 def dataset_evaluation_results_log(
-        results_file: TextIO, 
-        dataset_type: str, 
-        dataset_name: str, 
-        result: dict
-        ) -> None:
-    timestamp: datetime.datetime = get_current_timestamp()
+    results_file: TextIO, dataset_type: str, dataset_name: str, result: dict
+) -> None:
+    timestamp = get_current_timestamp()
     message = f"Dataset: {dataset_type} '{dataset_name}', Result: {result}"
     log_line = f"{timestamp:<26} - {message}"
     results_file.write(log_line + "\n")
     print(log_line)
 
-def start_new_dataset_log(
-        results_file: TextIO, 
-        dataset_type: str,
-        dataset_name: str
-        ) -> None:
-    timestamp: datetime.datetime = get_current_timestamp()
+
+def start_new_dataset_log(results_file: TextIO, dataset_type: str, dataset_name: str) -> None:
+    timestamp = get_current_timestamp()
     message = f"Starting training for dataset '{dataset_name}' ({dataset_type})"
     log_line = f"{timestamp:<26} - {message}"
     results_file.write(log_line + "\n")
     print(log_line)
-
-def get_current_timestamp() -> str:
-    return datetime.datetime.now().isoformat()
 
 
 if __name__ == "__main__":
