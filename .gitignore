@@ -168,3 +168,15 @@ experiments/total_perceptron_tests/data/KMNIST/**
 experiments/total_perceptron_tests/data/FashionMNIST/**
 experiments/total_perceptron_tests/data/cifar-100-python.tar.gz
 experiments/total_perceptron_tests/data/creditcard.csv
+
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.xdv
+*.bbl
+*.bcf
+*.blg
