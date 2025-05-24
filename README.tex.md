@@ -24,7 +24,7 @@
 
 ```bash
 tlmgr install collection-langcyrillic babel-russian
-tlmgr install algorithm2e algorithmicx
+tlmgr install algorithm2e algorithmicx algorithms
 tlmgr install enumitem cm-super
 tlmgr install mathtools caption subcaption
 tlmgr install wrapfig pgf
@@ -34,7 +34,7 @@ tlmgr install wrapfig pgf
 
 1. **Установка tex-fmt** (форматирование LaTeX):
     ```bash
-    curl -L https://github.com/WGUNDERWOOD/tex-fmt/releases/download/v0.5.4/tex-fmt-x86_64-linux.tar.gz | sudo tar -xz -C /usr/local/bin
+    curl -L https://github.com/WGUNDERWOOD/tex-fmt/releases/download/v0.5.4/tex-fmt-x86_64-linux.tar.gz | sudo tar -xz -C /usr/bin | chmod +x /usr/local/bin/tex-fmt
     ```
 
 2. **Установка chktex** (проверка синтаксиса LaTeX):
@@ -58,6 +58,9 @@ tlmgr install wrapfig pgf
 
 # Общие настройки
 
-- Длина строки: 120 символов  
-- tab: 2 пробела  
+- Длина строки: 120 символов `--wraplen`
+- tab: 2 пробела `--tabsize`
 - Максимальный размер файла: 15 Мб
+- Форматирование: `tex-fmt` и `chktex`
+- Рендеринг: PDFLaTeX
+- Рендеринг на: сохранение файла
