@@ -995,7 +995,7 @@ def save_analysis_results(results: dict, filepath: str) -> None:
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(obj, (np.bool_, np.bool)):
+        elif isinstance(obj, np.bool_):
             return bool(obj)
         else:
             return obj
