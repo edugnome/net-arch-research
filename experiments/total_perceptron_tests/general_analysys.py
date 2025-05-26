@@ -984,7 +984,7 @@ def save_analysis_results(results: dict, filepath: str) -> None:
     import json
 
     # Конвертируем numpy типы в обычные Python типы
-    def convert_to_python_types(obj) -> Any:
+    def convert_to_python_types(obj: Any) -> Any:
         if isinstance(obj, dict):
             return {k: convert_to_python_types(v) for k, v in obj.items()}
         elif isinstance(obj, list):
@@ -995,6 +995,8 @@ def save_analysis_results(results: dict, filepath: str) -> None:
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, (np.bool_, np.bool)):
+            return bool(obj)
         else:
             return obj
 

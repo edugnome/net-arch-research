@@ -1,5 +1,5 @@
 """
-Данный модуль содержит реализацию двух типов "трейнеров" (Trainer) для обучения 
+Данный модуль содержит реализацию двух типов "трейнеров" (Trainer) для обучения
 моделей (персептронов) на классификационных и регрессионных датасетах:
 
 1. BaseTrainer (абстрактный класс):
@@ -39,7 +39,7 @@ import sys
 import pickle
 import datetime
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Tuple
+from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -47,18 +47,14 @@ from torch.utils.data import TensorDataset, DataLoader
 
 import numpy as np
 
-from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc
-)
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc
 
-from sklearn.metrics import (
-    r2_score, mean_absolute_error, mean_squared_error
-)
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 from datasets import DATASET_CONFIG
 
 # Для импорта модулей из корня проекта
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from hessian.layer_wise_hessian import compute_local_hessians_for_chunks
 from analysys.linal import get_eigenvalues, get_rank
@@ -76,12 +72,14 @@ warnings.filterwarnings("ignore")
 #                 Базовый класс Trainer (абстрактный)                         #
 ###############################################################################
 class Trainer(ABC):
-    def __init__(self,
-                 dataset_name: str,
-                 dataset_type: str,  # "classification" или "regression"
-                 datetime_str: str = None,
-                 batch_size: int = 64,
-                 device: str = "cuda"):
+    def __init__(
+        self,
+        dataset_name: str,
+        dataset_type: str,  # "classification" или "regression"
+        datetime_str: str | None = None,
+        batch_size: int = 64,
+        device: str = "cuda",
+    ):
         """
         Параметры
         ---------
@@ -90,7 +88,7 @@ class Trainer(ABC):
         dataset_type : str
             "classification" или "regression", чтобы знать, где искать в DATASET_CONFIG.
         date_str : str
-            Строка с датой (для сохранения в results/<date_str> ...). 
+            Строка с датой (для сохранения в results/<date_str> ...).
             Если None, то берётся текущая дата.
         batch_size : int
             Размер batch для DataLoader.
@@ -137,8 +135,8 @@ class Trainer(ABC):
 
         X_train_t = torch.tensor(X_train, dtype=torch.float32)
         y_train_t = torch.tensor(y_train)
-        X_test_t  = torch.tensor(X_test, dtype=torch.float32)
-        y_test_t  = torch.tensor(y_test)
+        X_test_t = torch.tensor(X_test, dtype=torch.float32)
+        y_test_t = torch.tensor(y_test)
 
         if self.dataset_type == "classification":
             y_train_t = y_train_t.long()
@@ -148,10 +146,10 @@ class Trainer(ABC):
             y_test_t = y_test_t.float()
 
         train_ds = TensorDataset(X_train_t, y_train_t)
-        test_ds  = TensorDataset(X_test_t, y_test_t)
+        test_ds = TensorDataset(X_test_t, y_test_t)
 
         train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True)
-        test_loader  = DataLoader(test_ds, batch_size=self.batch_size, shuffle=False)
+        test_loader = DataLoader(test_ds, batch_size=self.batch_size, shuffle=False)
 
         return train_loader, test_loader
 
@@ -185,11 +183,11 @@ class Trainer(ABC):
         optimizer = self.optimizer_cls(model.parameters(), **self.optimizer_args)
 
         save_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), 
-            "results", 
-            self.date_str, 
-            self.dataset_name, 
-            model_type
+            os.path.dirname(os.path.abspath(__file__)),
+            "results",
+            self.date_str,
+            self.dataset_name,
+            model_type,
         )
         os.makedirs(save_dir, exist_ok=True)
         log_path = os.path.join(save_dir, "logs.log")
@@ -240,8 +238,9 @@ class Trainer(ABC):
                 if iteration_count % 50 == 0:
                     print(f"Saving model data at iteration {iteration_count}")
                     log_f.write(f"Saving model data at iteration {iteration_count}\n")
-                    self.save_model_data(model, batch_x, grads, test_metrics, \
-                                         loss, save_dir, iteration_count)
+                    self.save_model_data(
+                        model, batch_x, grads, test_metrics, loss, save_dir, iteration_count
+                    )
 
                 torch.cuda.empty_cache()
 
@@ -255,7 +254,7 @@ class Trainer(ABC):
         test_metrics: Dict[str, float],
         loss: torch.Tensor,
         save_dir: str,
-        iteration_count: int
+        iteration_count: int,
     ) -> None:
         print("Extract model data to CPU...")
 
@@ -285,7 +284,9 @@ class Trainer(ABC):
         hess_eigs = {i: get_eigenvalues(hessian) for i, hessian in hess.items()}
         hess_eigs_spectral = {i: compute_tensor_statistics(eigs) for i, eigs in hess_eigs.items()}
         hess_ranks = {i: get_rank(hessian) for i, hessian in hess.items()}
-        hess_eigs_conditionals = {i: compute_condition_number(eigs) for i, eigs in hess_eigs.items()}
+        hess_eigs_conditionals = {
+            i: compute_condition_number(eigs) for i, eigs in hess_eigs.items()
+        }
 
         print("Computing gradient spectral statistics...")
         grad_spectral = {name: compute_tensor_statistics(grad) for name, grad in grads.items()}
@@ -307,7 +308,7 @@ class Trainer(ABC):
                     "hessian_rank": int(hess_ranks[layer_idx].long()),
                     "hessian_condition": hess_eigs_conditionals[layer_idx],
                     "gradient": grads[name].tolist(),
-                    "gradient_spectral": grad_spectral[name]
+                    "gradient_spectral": grad_spectral[name],
                 }
                 layer_idx += 1
             elif name.endswith("bias"):
@@ -372,9 +373,9 @@ class ClassificationTrainer(Trainer):
         rec = recall_score(all_trues, all_preds, average="macro", zero_division=0)
         f1 = f1_score(all_trues, all_preds, average="macro", zero_division=0)
 
-        # Для ROC и AUC нужно получать вероятности. 
+        # Для ROC и AUC нужно получать вероятности.
         # Для упрощения если num_classes=2, возьмём логиты[:,1] как "score"
-        # Если классов > 2, здесь уже сложнее (OneVsRest). 
+        # Если классов > 2, здесь уже сложнее (OneVsRest).
         # Покажем упрощённый вариант для бинарного случая:
         if len(np.unique(all_trues)) == 2:
             # Выделяем score = logits[:,1] через повторный проход (не очень эффективно)
@@ -400,8 +401,8 @@ class ClassificationTrainer(Trainer):
             "Precision": prec,
             "Recall": rec,
             "F1": f1,
-            "AUC": _auc  # В много-классовом случае здесь формально 0, 
-                         # реально нужно OneVsRest подход или другое усреднение
+            "AUC": _auc,  # В много-классовом случае здесь формально 0,
+            # реально нужно OneVsRest подход или другое усреднение
         }
         return metrics_dict
 
@@ -440,11 +441,7 @@ class RegressionTrainer(Trainer):
         mse = mean_squared_error(all_trues, all_preds)
         rmse = np.sqrt(mse)
 
-        metrics_dict = {
-            "R2": r2,
-            "MAE": mae,
-            "RMSE": rmse
-        }
+        metrics_dict = {"R2": r2, "MAE": mae, "RMSE": rmse}
         return metrics_dict
 
 
@@ -452,14 +449,8 @@ class RegressionTrainer(Trainer):
 #   Пример использования                                                      #
 ###############################################################################
 if __name__ == "__main__":
-    trainer = ClassificationTrainer(
-        dataset_name="Make Biclusters",
-        batch_size=32
-    )
+    trainer = ClassificationTrainer(dataset_name="Make Biclusters", batch_size=32)
     trainer.train_all_variants()
 
-    reg_trainer = RegressionTrainer(
-        dataset_name="Energy Efficiency",
-        batch_size=16
-    )
+    reg_trainer = RegressionTrainer(dataset_name="Energy Efficiency", batch_size=16)
     reg_trainer.train_all_variants()
