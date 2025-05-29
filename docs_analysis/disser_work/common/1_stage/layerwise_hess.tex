@@ -1,0 +1,247 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T2A]{fontenc}
+\usepackage[russian,english]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath, amssymb, amsthm, bm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{mathtools}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{tikz}
+
+\title{Полное строгое определение локального и глобального \\ Hessian’а второго порядка \\ в произвольной
+нейронной архитектуре}
+\author{Автор}
+\date{\today}
+
+\newcommand{\Pa}{\mathrm{Pa}} % родительские узлы
+\newcommand{\Ch}{\mathrm{Ch}} % дочерние узлы
+
+\begin{document}
+\sloppy
+\maketitle
+
+\begin{abstract}
+  В этом отчёте приводится исчерпывающее математически строгое определение Hessian’а второго порядка для
+  нейронных сетей произвольной архитектуры, заданной направленным ациклическим графом. Учтены все чистые и
+  смешанные вторые производные по входам и параметрам, кросс‐блоки между разными параметрами, «шаринг»
+  параметров, а также негладкие активации через Clarke‐Гессиан. Для тривиального графа из единственного узла
+  без потомков и предков наши формулы сводятся к стандартному Hessian’у $\nabla^2_\theta\mathcal
+  L(\theta)\in\mathbb{R}^{p\times p}$. Каждый шаг снабжён пояснениями о роли того или иного члена.
+\end{abstract}
+
+\tableofcontents
+\bigskip
+
+\section{Введение}
+Hessian второго порядка $\nabla^2\mathcal L$ играет ключевую роль в анализе кривизны функционала потерь и в
+разработке методов оптимизации (Newton, trust‐region и др.). Типичная Gauss–Newton‐аппроксимация учитывает
+лишь часть всех вторых производных. Здесь мы даём \emph{полный} формализм, закрывающий следующие пробелы:
+\begin{itemize}
+  \item чистые и смешанные вторые производные по \emph{входам} каждого узла,
+  \item чистые вторые производные по \emph{параметрам},
+  \item кросс‐блоки $\partial^2/\partial\theta_v\,\partial\theta_w$,
+  \item смешанные вход–параметрические слагаемые,
+  \item учёт «шаринга» одного вектора параметров в нескольких узлах,
+  \item негладкие активации через выбор Clarke‐Гессиана.
+\end{itemize}
+\emph{Особый случай:} если граф состоит из одного узла без потомков и предков, все определения сводятся к
+стандартному Hessian’у $\nabla^2_\theta\mathcal L(\theta)\in\mathbb{R}^{p\times p}$.
+
+\section{Модель и разделение случаев}
+\begin{description}
+  \item[Граф:] сеть задаётся DAG $G=(V,E)$.
+  \item[Узел $v\in V$:] входы $f_{\Pa(v)}\in\prod_{u\in\Pa(v)}\mathbb{R}^{d_u}$, параметры
+    $\theta_v\in\mathbb{R}^{p_v}$, отображение
+    \[
+      f_v \;=\; g_v\bigl(f_{\Pa(v)},\,\theta_v\bigr)\;\in\;\mathbb{R}^{d_v}.
+    \]
+  \item[Потеря:] $\mathcal L:\mathbb{R}^{d_{out}}\to\mathbb{R}$ на выходном узле $out\in V$.
+\end{description}
+
+Разделяем два режима:
+\begin{itemize}
+  \item \textbf{Случай A (гладкий).} Все $g_v\in C^2$ по входам и параметрам.
+  \item \textbf{Случай B (негладкий).} Допускаются ReLU, max‐pool и пр.; вводится Clarke‐Гессиан $\partial_C^2 f_v$.
+\end{itemize}
+
+Вычисление всех блоков Hessian ведётся в \emph{обратном топологическом порядке} по $G$, начиная с $out$.
+
+\section{Первый порядок}
+Нам прежде всего нужны:
+\begin{align*}
+  &\delta_v \;:=\; \nabla_{f_v}\,\mathcal L
+  &&\in\mathbb{R}^{d_v},
+  \\[-2pt]
+  &\delta_{v,i} \;:=\; [\delta_v]_i,
+  &&i=1,\dots,d_v,
+  \\[3pt]
+  &D_{u\gets v}
+  \;:=\;\frac{\partial f_u}{\partial f_v}
+  &&\in\mathbb{R}^{d_u\times d_v},
+  \\[-2pt]
+  &D_v
+  \;:=\;\frac{\partial f_v}{\partial\theta_v}
+  &&\in\mathbb{R}^{d_v\times p_v}.
+\end{align*}
+\emph{Комментарий:} градиенты $\delta_v$ и якобианы $D_{u\gets v}$, $D_v$ — основа цепного правила первого порядка.
+
+\section{Тензоры чистых и смешанных вторых производных}
+Чтобы учесть \emph{все} вторые производные функций узлов, вводим:
+\begin{align*}
+  &[T_{u;v}]_{i,j,k}
+  = \frac{\partial^2 (f_u)_i}{\partial(f_v)_j\,\partial(f_v)_k}
+  \quad\in\mathbb{R}^{d_u\times d_v\times d_v},
+  &&v\in\Pa(u),
+  \\[3pt]
+  &[T_{u;\,v,w}]_{i,j,k}
+  = \frac{\partial^2 (f_u)_i}{\partial(f_v)_j\,\partial(f_w)_k}
+  \quad\in\mathbb{R}^{d_u\times d_v\times d_w},
+  &&v,w\in\Pa(u),\ v\neq w,
+  \\[3pt]
+  &[T_{v;\,w,\theta}]_{i,j,k}
+  = \frac{\partial^2 (f_v)_i}{\partial(f_w)_j\,\partial(\theta_v)_k}
+  \quad\in\mathbb{R}^{d_v\times d_w\times p_v},
+  &&w\in\Pa(v),
+  \\[3pt]
+  &[T_v^\theta]_{i,k,\ell}
+  = \frac{\partial^2 (f_v)_i}{\partial(\theta_v)_k\,\partial(\theta_v)_\ell}
+  \quad\in\mathbb{R}^{d_v\times p_v\times p_v}.
+\end{align*}
+\emph{Комментарий:} индексы $i$ суммируются с весом $\delta_{u,i}$ — это даёт чистые «тензорные» вклады в Hessian.
+
+\section{Полный входной Hessian}
+Вводим блочную матрицу \(\{H^f_{v,w}\}_{v,w\in V}\), где каждый блок \(H^f_{v,w}\in\mathbb{R}^{d_v\times
+d_w}\) даётся формулой
+\begin{equation}\label{eq:Hf}
+  \boxed{
+    \begin{split}
+      H^f_{v,w}
+      &=
+      \sum_{u\in\Ch(v)\cap\Ch(w)}
+      D_{u\gets v}^\top\,H^f_{u,u}\,D_{u\gets w}
+      \quad\text{(Gauss–Newton)}\\
+      &\quad+
+      \sum_{u\in\Ch(v)\cap\Ch(w)}
+      \sum_{i=1}^{d_u}
+      [T_{u;\,v,w}]_{i,\bullet,\bullet}\,\delta_{u,i}
+      \quad\text{(смешанные входы)}\\
+      &\quad+
+      \delta_{v=w}\,
+      \sum_{u\in\Ch(v)}
+      \sum_{i=1}^{d_u}
+      [T_{u;v}]_{i,\bullet,\bullet}\,\delta_{u,i}
+      \quad\text{(чистые по одному входу)}
+    \end{split}
+  }
+\end{equation}
+с условиями-основами
+\[
+  H^f_{out,out} = \nabla^2\mathcal L(f_{out}),
+  \quad
+  H^f_{out,v} = H^f_{v,out} = 0\quad (\forall v\neq out),
+\]
+\[
+  H^f_{v,w} = 0
+  \quad\text{если нет узла }u\text{, являющегося потомком и }v,w.
+\]
+\textbf{Симметрия:}\quad
+$H^f_{v,w}=(H^f_{w,v})^\top$.
+
+\emph{Комментарий:}
+\begin{itemize}
+  \item Первая строка — классический Gauss–Newton.
+  \item Вторая — учёт смешанных $\partial^2 f_u/(\partial f_v\,\partial f_w)$.
+  \item Третья (только при $v=w$) — чистые $\partial^2 f_u/\partial f_v^2$.
+  \item Off‐diag‐base-case сразу обнуляет блоки без связи.
+\end{itemize}
+
+\section{Полный параметрический Hessian}
+Разбиваем $\nabla^2_{\theta}\mathcal L$ на блочные элементы
+\(\{H_{\theta_v,\theta_w}\}\), $H_{\theta_v,\theta_w}\in\mathbb{R}^{p_v\times p_w}$:
+\begin{equation}\label{eq:Htheta}
+  \boxed{
+    \begin{split}
+      H_{\theta_v,\theta_w}
+      &= D_v^\top\,H^f_{v,w}\,D_w
+      \quad\text{(Gauss–Newton)}\\
+      &\quad+
+      \delta_{v=w}\,
+      \sum_{i=1}^{d_v}
+      [T_v^\theta]_{i,\bullet,\bullet}\,\delta_{v,i}
+      \quad\text{(чистые по параметрам)}\\
+      &\quad+
+      \sum_{u\in\Pa(v)\cap\Ch(w)}
+      \sum_{i=1}^{d_v}\sum_{j=1}^{d_w}\sum_{k=1}^{p_v}
+      [T_{v;\,u,\theta}]_{i,j,k}\,(D_{w\gets v})_{j,i}\,\delta_{v,i}
+      \quad\text{(смешанные вход–параметр $v\to w$)}\\
+      &\quad+
+      \sum_{u\in\Pa(w)\cap\Ch(v)}
+      \sum_{i=1}^{d_w}\sum_{j=1}^{d_v}\sum_{\ell=1}^{p_w}
+      [T_{w;\,u,\theta}]_{i,j,\ell}\,(D_{v\gets w})_{j,i}\,\delta_{w,i}
+      \quad\text{(смешанные вход–параметр $w\to v$)}
+    \end{split}
+  }
+\end{equation}
+\emph{Офф-диагональный base‐case:}
+\[
+  H_{\theta_v,\theta_w}=0
+  \quad\text{если нет путей }v\to u\text{ и }w\to u.
+\]
+\textbf{Симметрия:}\quad
+$H_{\theta_v,\theta_w}=(H_{\theta_w,\theta_v})^\top$.
+
+\emph{Комментарий:}
+\begin{itemize}
+  \item Первая строка — Gauss–Newton‐часть.
+  \item Вторая — чистые вторые по $\theta_v$, только при $v=w$.
+  \item Третья и четвёртая — смешанные вход–параметр для диагональных и офф‐диагональных блоков.
+\end{itemize}
+
+\section{Sharing параметров}
+Если один вектор $\theta\in\mathbb{R}^p$ разделяют узлы
+$\{v_k\}_{k=1}^K$, то итоговый Hessian
+\[
+  H_{\theta,\theta}
+  = \sum_{a=1}^K\sum_{b=1}^K
+  H_{\theta_{v_a},\,\theta_{v_b}}.
+\]
+
+\section{Clarke‐Гессиан (негладкий случай)}
+В случае B вместо каждого блока $H^f_{v,v}$ и
+соответствующих $H_{\theta_v,\theta_w}$ получается
+множество $\partial_C^2f_v$. Фиксируем \emph{measurable
+selection}:
+\[
+  H^f_{v,w}
+  = \arg\min_{M\in\partial_C^2 f_v}\|M\|_F,
+  \quad
+  H_{\theta_v,\theta_w}
+  = \arg\min_{M\in\partial^2_{\theta_v,\theta_w}\!\mathcal L}\|M\|_F.
+\]
+
+\section{Практические замечания}
+\begin{itemize}
+  \item В \textbf{гладком} случае имеет смысл проверять положительную полуопределённость Gauss–Newton‐части
+    $D_v^\top\,H^f_{v,v}\,D_v$ перед добавлением остальных слагаемых.
+  \item При большом графе эффективнее осуществлять обратный топологический обход с запоминанием промежуточных блоков.
+\end{itemize}
+
+\section{Заключение}
+В отчёте представлен исчерпывающий формализм Hessian’а второго порядка:
+\begin{itemize}
+  \item Полная блочная структура по $\{f_v\}$ и $\{\theta_v\}$.
+  \item Учет всех чистых и смешанных вторых производных.
+  \item Явные base‐case для off‐diag блоков.
+  \item Отдельные правила для гладкого и негладкого случаев.
+  \item Упоминание тривиального предельного случая одного узла.
+  \item Практические рекомендации по проверке PSD Gauss–Newton части.
+\end{itemize}
+Теперь этот формализм готов к любым теоретическим выкладкам и практической реализации.
+\end{document}
