@@ -515,7 +515,7 @@ CCA анализ выявил следующие зависимости:
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{cca_score_statistics_comparison.pdf}
+  \includegraphics[width=0.8\textwidth]{resources/cca_score_statistics_comparison.pdf}
   \caption{Сравнение статистик CCA Score между архитектурами}
   \label{fig:cca_score_comparison}
 \end{figure}
@@ -546,7 +546,7 @@ CCA анализ выявил следующие зависимости:
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{layer_3_gradient_spectral_welch_psd_sum_comparison.pdf}
+  \includegraphics[width=0.8\textwidth]{resources/layer_3_gradient_spectral_welch_psd_sum_comparison.pdf}
   \caption{Сравнение спектральных характеристик градиентов третьего слоя}
   \label{fig:layer3_gradient_spectral}
 \end{figure}
@@ -564,14 +564,14 @@ CCA анализ выявил следующие зависимости:
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{cca_x_weights_all_shapes.pdf}
+  \includegraphics[width=0.8\textwidth]{resources/cca_x_weights_all_shapes.pdf}
   \caption{Распределение канонических X-весов по архитектурам}
   \label{fig:cca_x_weights}
 \end{figure}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{cca_y_weights_all_shapes.pdf}
+  \includegraphics[width=0.8\textwidth]{resources/cca_y_weights_all_shapes.pdf}
   \caption{Распределение канонических Y-весов по архитектурам}
   \label{fig:cca_y_weights}
 \end{figure}
@@ -599,7 +599,7 @@ CCA анализ выявил следующие зависимости:
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.8\textwidth]{feature_importance_layer3.pdf}
+  \includegraphics[width=0.8\textwidth]{resources/feature_importance_layer3.pdf}
   \caption{Важность параметров из группы B (веса, градиенты и гессианы) третьего слоя для различных архитектур}
   \label{fig:feature_importance}
 \end{figure}
@@ -615,7 +615,6 @@ CCA анализ выявил следующие зависимости:
 
 \begin{table}[ht]
   \centering
-  \caption{Параметры группы B с максимальными различиями между архитектурами}
   \label{tab:weight_diff}
   \begin{tabular}{|c|c|c|c|c|}
     \hline
@@ -627,6 +626,7 @@ CCA анализ выявил следующие зависимости:
     196.0 & 12.0 & 46.0 & 184.0 & 150.0 \\
     \hline
   \end{tabular}
+  \caption{Параметры группы B с максимальными различиями между архитектурами}
 \end{table}
 
 Эти данные демонстрируют радикальные различия в величине параметров между большой и малой архитектурами,
@@ -641,7 +641,6 @@ CCA анализ выявил следующие зависимости:
 
 \begin{table}[ht]
   \centering
-  \caption{Статистические свойства весов CCA для различных архитектур и форм}
   \label{tab:cca_stats}
   \begin{tabular}{|l|c|c|c|c|}
     \hline
@@ -660,6 +659,7 @@ CCA анализ выявил следующие зависимости:
     sure & Y-веса & (20, 2) & 0.0000 & 0.0003 \\
     \hline
   \end{tabular}
+  \caption{Статистические свойства весов CCA для различных архитектур и форм}
 \end{table}
 
 Примечательно практически нулевое значение дисперсии для первой размерности Y-весов во всех архитектурах, что
@@ -680,7 +680,7 @@ CCA анализ выявил следующие зависимости:
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.7\textwidth]{architecture_clustering.pdf}
+  \includegraphics[width=0.7\textwidth]{resources/architecture_clustering.pdf}
   \caption{Распределение архитектур в пространстве спектральных характеристик гессианов после снижения размерности}
   \label{fig:architecture_clustering}
 \end{figure}
@@ -828,7 +828,7 @@ CCA анализ выявил следующие зависимости:
 сети, а цвет указывает на архитектуру сети.
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=1\linewidth]{umap.pdf}
+  \includegraphics[width=1\linewidth]{resources/umap.pdf}
   \caption{Распределение снимков весов, градиентов и гессианов в пространстве размерности 2}
   \label{fig:umap}
 \end{figure}
