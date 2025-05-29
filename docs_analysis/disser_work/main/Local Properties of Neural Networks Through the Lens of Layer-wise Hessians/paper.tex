@@ -28,6 +28,7 @@
 
 \begin{document}
 
+\sloppy
 \maketitle
 
 \begin{abstract}
@@ -980,7 +981,9 @@ CCA анализ выявил следующие зависимости:
 
 \end{thebibliography}
 
-\section*{Приложение}
+\newpage
+
+\appendix
 \addcontentsline{toc}{section}{Приложение}
 
 \section{Структура экспериментальных данных}
@@ -1036,7 +1039,6 @@ CCA анализ выявил следующие зависимости:
 В ходе эксперимента использовались следующие датасеты:
 \begin{table}[ht]
   \centering
-  \caption{Типы датасетов по типу задачи}
   \begin{tabular}{|p{0.45\textwidth}|p{0.45\textwidth}|}
     \hline
     \textbf{Классификация} & \textbf{Регрессия} \\
@@ -1065,6 +1067,7 @@ CCA анализ выявил следующие зависимости:
     Make Multilabel Classification & \\
     \hline
   \end{tabular}
+  \caption{Датасеты по классификации и регрессии, использованные в эксперименте}
 \end{table}
 
 \end{document}
